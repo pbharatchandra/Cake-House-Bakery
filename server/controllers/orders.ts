@@ -6,14 +6,14 @@ export const getOrders = async (req: Request, res: Response) => {
     const orders = await db.order.findMany({
       include: {
         user: {
-          select: { id: true, username: true, email: true, phoneNumber: true }
+          select: { id: true, username: true, email: true, phoneNumber: true },
         },
         orderItems: {
-          include: { product: true }
+          include: { product: true },
         },
         handledBy: {
-          select: { id: true, username: true }
-        }
+          select: { id: true, username: true },
+        },
       },
     });
     res.json({ orders });
@@ -26,10 +26,23 @@ export const getOrders = async (req: Request, res: Response) => {
 export const updateOrderStatus = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { status, paymentMethod, transactionId, cancellationReason, discount, handledById } = req.body;
-    
+    const {
+      status,
+      paymentMethod,
+      transactionId,
+      cancellationReason,
+      discount,
+      handledById,
+    } = req.body;
+
     // Status must be one of "PENDING", "PREPARING", "READY", "DELIVERED", "CANCELLED"
-    const validStatuses = ["PENDING", "PREPARING", "READY", "DELIVERED", "CANCELLED"];
+    const validStatuses = [
+      "PENDING",
+      "PREPARING",
+      "READY",
+      "DELIVERED",
+      "CANCELLED",
+    ];
     if (status && !validStatuses.includes(status)) {
       return res.status(400).json({ error: "Invalid status" });
     }
@@ -40,7 +53,7 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
       ...(paymentMethod && { paymentMethod }),
       ...(transactionId && { transactionId }),
       ...(cancellationReason && { cancellationReason }),
-      ...(handledById && { handledById })
+      ...(handledById && { handledById }),
     };
 
     if (discount !== undefined && discount !== null) {
@@ -52,15 +65,15 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
       data: updateData,
       include: {
         user: {
-          select: { id: true, username: true, email: true, phoneNumber: true }
+          select: { id: true, username: true, email: true, phoneNumber: true },
         },
         orderItems: {
-          include: { product: true }
+          include: { product: true },
         },
         handledBy: {
-          select: { id: true, username: true }
-        }
-      }
+          select: { id: true, username: true },
+        },
+      },
     });
 
     res.json({ order });
@@ -74,7 +87,7 @@ export const addOrderItems = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { items } = req.body;
-    
+
     if (!items || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ error: "No items provided" });
     }
@@ -96,13 +109,15 @@ export const addOrderItems = async (req: Request, res: Response) => {
 
         // Deduct stock
         const product = await tx.product.findUnique({
-          where: { id: item.productId }
+          where: { id: item.productId },
         });
-        
+
         if (product) {
           await tx.product.update({
             where: { id: item.productId },
-            data: { stockLevel: Math.max(0, product.stockLevel - item.quantity) }
+            data: {
+              stockLevel: Math.max(0, product.stockLevel - item.quantity),
+            },
           });
         }
       }
@@ -118,17 +133,22 @@ export const addOrderItems = async (req: Request, res: Response) => {
               quantity: item.quantity,
               price: item.price,
               customizations: item.customizations,
-            }))
-          }
+            })),
+          },
         },
         include: {
           user: {
-            select: { id: true, username: true, email: true, phoneNumber: true }
+            select: {
+              id: true,
+              username: true,
+              email: true,
+              phoneNumber: true,
+            },
           },
           orderItems: {
-            include: { product: true }
-          }
-        }
+            include: { product: true },
+          },
+        },
       });
     });
 
@@ -141,24 +161,58 @@ export const addOrderItems = async (req: Request, res: Response) => {
 
 export const createOrder = async (req: Request, res: Response) => {
   try {
-    const { userId, totalAmount, address, items, reservationIds, handledById } = req.body;
+    const {
+      userId,
+      totalAmount,
+      address,
+      items,
+      reservationIds,
+      handledById,
+      customerPhone,
+      customerName,
+    } = req.body;
     // items: [{ productId, quantity, price, customizations }]
-    
+
+    let resolvedUserId = userId;
+
+    if (customerPhone) {
+      // Find user by phone number
+      let phoneUser = await db.user.findFirst({
+        where: { phoneNumber: customerPhone },
+      });
+      if (phoneUser) {
+        resolvedUserId = phoneUser.id;
+      } else {
+        // Create a placeholder user for this phone number
+        phoneUser = await db.user.create({
+          data: {
+            username: customerName || `guest_${customerPhone}`,
+            email: `guest_${customerPhone}@offline.com`,
+            password: "dummy",
+            phoneNumber: customerPhone,
+          },
+        });
+        resolvedUserId = phoneUser.id;
+      }
+    } else if (!resolvedUserId) {
+      resolvedUserId = "offline_customer";
+    }
+
     // Ensure the user exists, create a placeholder if it doesn't
-    let user = await db.user.findUnique({ where: { id: userId } });
+    let user = await db.user.findUnique({ where: { id: resolvedUserId } });
     if (!user) {
       user = await db.user.create({
         data: {
-          id: userId,
-          username: `user_${userId}`,
-          email: `user_${userId}@test.com`,
+          id: resolvedUserId,
+          username: `user_${resolvedUserId}`,
+          email: `user_${resolvedUserId}@test.com`,
           password: "dummy",
-        }
+        },
       });
     }
 
     // In a real app, calculate totalAmount on the backend based on db prices to prevent tampering
-    
+
     // Validate customizations for each item
     for (const item of items) {
       if (item.customizations) {
@@ -166,17 +220,31 @@ export const createOrder = async (req: Request, res: Response) => {
         try {
           parsedCustomizations = JSON.parse(item.customizations);
         } catch (e) {
-          return res.status(400).json({ error: `Invalid customizations format for product ${item.productId}` });
+          return res
+            .status(400)
+            .json({
+              error: `Invalid customizations format for product ${item.productId}`,
+            });
         }
-        
-        const product = await db.product.findUnique({ where: { id: item.productId } });
+
+        const product = await db.product.findUnique({
+          where: { id: item.productId },
+        });
         if (product && product.customizationOptions) {
-           const options = JSON.parse(product.customizationOptions);
-           for (const opt of options) {
-             if (opt.required && (!parsedCustomizations[opt.name] || parsedCustomizations[opt.name].trim() === '')) {
-               return res.status(400).json({ error: `Missing required customization: ${opt.name} for product ${product.name}` });
-             }
-           }
+          const options = JSON.parse(product.customizationOptions);
+          for (const opt of options) {
+            if (
+              opt.required &&
+              (!parsedCustomizations[opt.name] ||
+                parsedCustomizations[opt.name].trim() === "")
+            ) {
+              return res
+                .status(400)
+                .json({
+                  error: `Missing required customization: ${opt.name} for product ${product.name}`,
+                });
+            }
+          }
         }
       }
     }
@@ -186,7 +254,7 @@ export const createOrder = async (req: Request, res: Response) => {
       // Create the order with its items
       const newOrder = await tx.order.create({
         data: {
-          userId,
+          userId: resolvedUserId,
           totalAmount,
           address,
           handledById,
@@ -196,12 +264,12 @@ export const createOrder = async (req: Request, res: Response) => {
               quantity: item.quantity,
               price: item.price,
               customizations: item.customizations,
-            }))
-          }
+            })),
+          },
         },
         include: {
-          orderItems: true
-        }
+          orderItems: true,
+        },
       });
 
       // Mark reservations as CONSUMED if provided
@@ -209,20 +277,22 @@ export const createOrder = async (req: Request, res: Response) => {
         for (const resId of reservationIds) {
           await tx.reservation.update({
             where: { id: resId },
-            data: { status: "CONSUMED" }
+            data: { status: "CONSUMED" },
           });
         }
       } else {
         // If no reservations were made, deduct stock here
         for (const item of items) {
           const product = await tx.product.findUnique({
-            where: { id: item.productId }
+            where: { id: item.productId },
           });
-          
+
           if (product) {
             await tx.product.update({
               where: { id: item.productId },
-              data: { stockLevel: Math.max(0, product.stockLevel - item.quantity) }
+              data: {
+                stockLevel: Math.max(0, product.stockLevel - item.quantity),
+              },
             });
           }
         }

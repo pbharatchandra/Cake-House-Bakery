@@ -1,22 +1,25 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../hooks/useAuth';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Header } from '../components/Header';
-import { LoadingScreen } from '../components/LoadingScreen';
+import React, { useState, useEffect } from "react";
+import { useAuth } from "../hooks/useAuth";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { Header } from "../components/Header";
+import { LoadingScreen } from "../components/LoadingScreen";
 
 export function ProfilePage() {
   const { user, loading: authLoading, updateUser } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const editName = searchParams.get('edit_name');
-  
-  const [username, setUsername] = useState('');
+  const editName = searchParams.get("edit_name");
+
+  const [username, setUsername] = useState("");
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<{type: 'success' | 'error', text: string} | null>(null);
+  const [message, setMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
-      navigate('/auth');
+      navigate("/auth");
     } else if (user) {
       setUsername(user.username);
     }
@@ -32,22 +35,26 @@ export function ProfilePage() {
     setLoading(true);
     setMessage(null);
     try {
-      const res = await fetch('/api/auth/profile', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, username })
+      const res = await fetch("/api/auth/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.id, username }),
       });
-      
+
       if (res.ok) {
         const data = await res.json();
         updateUser(data.user);
-        navigate('/');
+        navigate("/");
       } else {
-        setMessage({ type: 'error', text: 'Failed to update name' });
+        const data = await res.json();
+        setMessage({
+          type: "error",
+          text: data.error || "Failed to update name",
+        });
       }
     } catch (error) {
       console.error(error);
-      setMessage({ type: 'error', text: 'An error occurred' });
+      setMessage({ type: "error", text: "An error occurred" });
     } finally {
       setLoading(false);
     }
@@ -57,11 +64,19 @@ export function ProfilePage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background selection:bg-accent/20">
-      <Header categories={[]} cartCount={0} onSelectCategory={() => navigate('/')} onCartOpen={() => {}} onOrdersOpen={() => {}} />
+      <Header
+        categories={[]}
+        cartCount={0}
+        onSelectCategory={() => navigate("/")}
+        onCartOpen={() => {}}
+        onOrdersOpen={() => {}}
+      />
       <main className="flex-grow max-w-xl mx-auto w-full px-4 py-16">
-        <h1 className="text-3xl font-serif font-bold text-primary mb-8 text-center">Your Profile</h1>
-        
-        {editName === 'true' && (
+        <h1 className="text-3xl font-serif font-bold text-primary mb-8 text-center">
+          Your Profile
+        </h1>
+
+        {editName === "true" && (
           <div className="mb-6 p-4 bg-accent/10 border border-accent/20 text-accent rounded-lg text-sm">
             Welcome! Please set your name before continuing.
           </div>
@@ -70,7 +85,9 @@ export function ProfilePage() {
         <div className="bg-white p-8 rounded-xl shadow-lg border border-secondary/20">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-primary mb-1">Name / Username</label>
+              <label className="block text-sm font-medium text-primary mb-1">
+                Name / Username
+              </label>
               <input
                 type="text"
                 required
@@ -81,7 +98,9 @@ export function ProfilePage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-primary mb-1">Phone Number</label>
+              <label className="block text-sm font-medium text-primary mb-1">
+                Phone Number
+              </label>
               <input
                 type="text"
                 disabled
@@ -91,21 +110,23 @@ export function ProfilePage() {
             </div>
 
             {message && (
-              <div className={`p-3 rounded-md text-sm ${message.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+              <div
+                className={`p-3 rounded-md text-sm ${message.type === "success" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}
+              >
                 {message.text}
               </div>
             )}
 
-            <button 
-              type="submit" 
-              disabled={loading || username.trim() === ''}
+            <button
+              type="submit"
+              disabled={loading || username.trim() === ""}
               className="w-full py-2 bg-primary text-background rounded-md font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
             >
-              {loading ? 'Saving...' : 'Save Profile'}
+              {loading ? "Saving..." : "Save Profile"}
             </button>
-            <button 
-              type="button" 
-              onClick={() => navigate('/')}
+            <button
+              type="button"
+              onClick={() => navigate("/")}
               className="w-full py-2 text-primary/60 hover:text-primary transition-colors text-sm font-medium"
             >
               Cancel

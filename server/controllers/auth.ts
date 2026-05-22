@@ -5,7 +5,7 @@ import { db } from "../lib/db.js"; // .js extension is required for ESM in Node
 export const registerUser = async (req: Request, res: Response) => {
   try {
     const { username, email, password, role, phoneNumber } = req.body;
-    
+
     // Fallback basic setup
     const userRole = role || "CUSTOMER";
 
@@ -30,8 +30,10 @@ export const registerUser = async (req: Request, res: Response) => {
       },
     });
   } catch (error: any) {
-    if (error.code === 'P2002') {
-       return res.status(400).json({ error: "Username or email already exists" });
+    if (error.code === "P2002") {
+      return res
+        .status(400)
+        .json({ error: "Username or email already exists" });
     }
     console.error("Registration error:", error);
     res.status(500).json({ error: "Internal server error" });
@@ -43,22 +45,24 @@ export const loginUser = async (req: Request, res: Response) => {
     const { email, password } = req.body;
     let user = await db.user.findFirst({
       where: {
-        OR: [
-          { email: email },
-          { phoneNumber: email }
-        ]
+        OR: [{ email: email }, { phoneNumber: email }],
       },
     });
-    
+
     // Auto-seed demo accounts
     if (!user) {
-      if (email === 'admin@rustic.com' && password === 'dummy') {
+      if (email === "admin@rustic.com" && password === "dummy") {
         user = await db.user.create({
-          data: { email, password, username: 'Admin', role: 'ADMIN' }
+          data: { email, password, username: "Admin", role: "ADMIN" },
         });
-      } else if (email === 'kitchen@rustic.com' && password === 'dummy') {
+      } else if (email === "kitchen@rustic.com" && password === "dummy") {
         user = await db.user.create({
-          data: { email, password, username: 'Kitchen Staff', role: 'EMPLOYEE_OPS' }
+          data: {
+            email,
+            password,
+            username: "Kitchen Staff",
+            role: "EMPLOYEE_OPS",
+          },
         });
       }
     }
@@ -86,7 +90,7 @@ export const loginUser = async (req: Request, res: Response) => {
 export const firebaseLogin = async (req: Request, res: Response) => {
   try {
     const { uid, phoneNumber, password } = req.body;
-    
+
     if (!uid || !phoneNumber) {
       return res.status(400).json({ error: "Missing uid or phone number" });
     }
@@ -94,7 +98,7 @@ export const firebaseLogin = async (req: Request, res: Response) => {
     let user = await db.user.findFirst({
       where: { phoneNumber },
     });
-    
+
     let isNewUser = false;
     if (!user) {
       user = await db.user.create({
@@ -104,14 +108,14 @@ export const firebaseLogin = async (req: Request, res: Response) => {
           username: `User_${phoneNumber.substring(phoneNumber.length - 4)}`,
           password: password || `firebase_${uid}`,
           phoneNumber,
-          role: 'CUSTOMER'
-        }
+          role: "CUSTOMER",
+        },
       });
       isNewUser = true;
     } else if (password) {
       user = await db.user.update({
         where: { id: user.id },
-        data: { password }
+        data: { password },
       });
     }
 
@@ -123,7 +127,7 @@ export const firebaseLogin = async (req: Request, res: Response) => {
         username: user.username,
         email: user.email,
         role: user.role,
-        phoneNumber: user.phoneNumber
+        phoneNumber: user.phoneNumber,
       },
     });
   } catch (error) {
@@ -135,7 +139,7 @@ export const firebaseLogin = async (req: Request, res: Response) => {
 export const getProfile = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    
+
     if (!id) {
       return res.status(400).json({ error: "Missing user ID" });
     }
@@ -154,7 +158,7 @@ export const getProfile = async (req: Request, res: Response) => {
         username: user.username,
         email: user.email,
         role: user.role,
-        phoneNumber: user.phoneNumber
+        phoneNumber: user.phoneNumber,
       },
     });
   } catch (error) {
@@ -166,7 +170,7 @@ export const getProfile = async (req: Request, res: Response) => {
 export const updateProfile = async (req: Request, res: Response) => {
   try {
     const { userId, username } = req.body;
-    
+
     if (!userId || !username) {
       return res.status(400).json({ error: "Missing required fields" });
     }
@@ -183,10 +187,17 @@ export const updateProfile = async (req: Request, res: Response) => {
         username: updatedUser.username,
         email: updatedUser.email,
         role: updatedUser.role,
-        phoneNumber: updatedUser.phoneNumber
+        phoneNumber: updatedUser.phoneNumber,
       },
     });
-  } catch (error) {
+  } catch (error: any) {
+    if (error.code === "P2002") {
+      return res
+        .status(400)
+        .json({
+          error: "Username is already taken. Please choose another one.",
+        });
+    }
     console.error("Update profile error:", error);
     res.status(500).json({ error: "Internal server error" });
   }
@@ -206,9 +217,9 @@ export const getUsers = async (req: Request, res: Response) => {
           select: {
             orders: true,
             handledOrders: true,
-          }
-        }
-      }
+          },
+        },
+      },
     });
     res.json({ users });
   } catch (error) {
@@ -221,14 +232,16 @@ export const adminResetUserPassword = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { newPassword } = req.body;
-    
+
     if (!newPassword || newPassword.length < 6) {
-      return res.status(400).json({ error: "Password must be at least 6 characters long." });
+      return res
+        .status(400)
+        .json({ error: "Password must be at least 6 characters long." });
     }
 
     await db.user.update({
       where: { id },
-      data: { password: newPassword }
+      data: { password: newPassword },
     });
 
     res.json({ message: "Password reset successfully." });
@@ -242,7 +255,7 @@ export const deleteUser = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const userToDel = await db.user.findUnique({ where: { id } });
-    if (userToDel?.role === 'ADMIN') {
+    if (userToDel?.role === "ADMIN") {
       return res.status(403).json({ error: "Cannot delete an Admin account." });
     }
     await db.user.delete({ where: { id } });
@@ -256,7 +269,7 @@ export const deleteUser = async (req: Request, res: Response) => {
 export const updatePassword = async (req: Request, res: Response) => {
   try {
     const { userId, oldPassword, newPassword } = req.body;
-    
+
     if (!userId || !oldPassword || !newPassword) {
       return res.status(400).json({ error: "Missing required fields" });
     }
