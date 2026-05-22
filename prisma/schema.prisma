@@ -1,0 +1,104 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model SupportTicket {
+  id         String   @id @default(uuid())
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id])
+  guestEmail String?
+  orderId    String?
+  order      Order?   @relation(fields: [orderId], references: [id])
+  subject    String
+  message    String
+  status     String   @default("OPEN") // OPEN, IN_PROGRESS, RESOLVED
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model User {
+  id          String          @id @default(uuid())
+  username    String          @unique
+  email       String          @unique
+  password    String // Store hashed passwords
+  role        String          @default("CUSTOMER") // "ADMIN", "EMPLOYEE_OPS", "EMPLOYEE_SUPPORT", "CUSTOMER"
+  phoneNumber String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  orders      Order[]
+  handledOrders Order[]       @relation("EmployeeOrders")
+  supportTickets SupportTicket[]
+}
+
+model Category {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  description String?
+  products    Product[]
+}
+
+model Product {
+  id                   String        @id @default(uuid())
+  name                 String
+  description          String
+  price                Float
+  stockLevel           Int           @default(0)
+  categoryId           String
+  category             Category      @relation(fields: [categoryId], references: [id])
+  isCustomizable       Boolean       @default(false)
+  customizationOptions String?
+  image                String?
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+  orderItems           OrderItem[]
+  reservations         Reservation[]
+}
+
+model Reservation {
+  id        String   @id @default(uuid())
+  userId    String?
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity  Int
+  expiresAt DateTime
+  status    String   @default("ACTIVE") // ACTIVE, CONSUMED, EXPIRED
+  createdAt DateTime @default(now())
+}
+
+model Order {
+  id                 String          @id @default(uuid())
+  userId             String
+  user               User            @relation(fields: [userId], references: [id])
+  status             String          @default("PENDING") // "PENDING", "PREPARING", "READY", "DELIVERED", "CANCELLED"
+  totalAmount        Float
+  address            String?
+  paymentMethod      String?
+  transactionId      String?
+  cancellationReason String?
+  handledById        String?
+  handledBy          User?           @relation("EmployeeOrders", fields: [handledById], references: [id])
+  discount           Float?  @default(0)
+  orderItems         OrderItem[]
+  supportTickets     SupportTicket[]
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+}
+
+model OrderItem {
+  id             String   @id @default(uuid())
+  orderId        String
+  order          Order    @relation(fields: [orderId], references: [id])
+  productId      String?
+  product        Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  quantity       Int
+  price          Float // snapshot of price at order time
+  customizations String? // JSON string or notes for customized items
+}

@@ -1,0 +1,6 @@
+{
+  "name": "Rustic Bakery App",
+  "description": "A full-stack, modular web application for a bakery, implementing the Feature-Slice Architecture.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
