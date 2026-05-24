@@ -61,15 +61,6 @@ export function FulfillmentDashboard() {
   const { user, loading: authLoading } = useAuth();
   const { storeStatus } = useStoreStatus();
 
-  // Redirect if unauthorized
-  if (authLoading) {
-    return <LoadingScreen message="Loading..." />;
-  }
-
-  if (!user || user.role === 'CUSTOMER') {
-    return <Navigate to="/" replace />;
-  }
-
   const fetchOrders = () => {
     fetch('/api/orders')
       .then(res => res.json())
@@ -91,6 +82,15 @@ export function FulfillmentDashboard() {
     };
     return () => sse.close();
   }, []);
+
+  // Redirect if unauthorized
+  if (authLoading) {
+    return <LoadingScreen message="Loading..." />;
+  }
+
+  if (!user || user.role === 'CUSTOMER') {
+    return <Navigate to="/" replace />;
+  }
 
   const handleRemoveOrderItem = async (orderId: string, itemId: string) => {
     try {
