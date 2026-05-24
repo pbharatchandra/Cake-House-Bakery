@@ -5,10 +5,12 @@ import { AdminDashboard } from './pages/AdminDashboard';
 import { AuthProvider } from './hooks/useAuth';
 import { AuthPage } from './pages/AuthPage';
 import { ProfilePage } from './pages/ProfilePage';
+import { NotificationListener } from './components/NotificationListener';
 
 export default function App() {
   return (
     <AuthProvider>
+      <NotificationListener />
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Storefront />} />

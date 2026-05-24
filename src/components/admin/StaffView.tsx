@@ -43,8 +43,7 @@ export function StaffView() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email: `${newEmail.replace(/[^0-9]/g, '')}@phone.com`,
-          phoneNumber: newEmail,
+          email: newEmail,
           password: newPassword,
           username: newUsername,
           role: 'EMPLOYEE_OPS'
@@ -119,8 +118,8 @@ export function StaffView() {
             <input required type="text" value={newUsername} onChange={e => setNewUsername(e.target.value)} className="w-full px-3 py-2 border border-secondary/30 rounded-md" />
           </div>
           <div className="flex-1">
-            <label className="block text-sm font-medium text-primary mb-1">Phone Number</label>
-            <input required type="tel" value={newEmail} onChange={e => setNewEmail(e.target.value)} className="w-full px-3 py-2 border border-secondary/30 rounded-md" />
+            <label className="block text-sm font-medium text-primary mb-1">Email</label>
+            <input required type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)} className="w-full px-3 py-2 border border-secondary/30 rounded-md" />
           </div>
           <div className="flex-1">
             <label className="block text-sm font-medium text-primary mb-1">Password</label>
@@ -137,7 +136,7 @@ export function StaffView() {
           <thead>
             <tr className="bg-secondary/10 border-b border-secondary/20">
               <th className="p-4 text-xs font-semibold text-primary/70 uppercase">Name</th>
-              <th className="p-4 text-xs font-semibold text-primary/70 uppercase">Phone</th>
+              <th className="p-4 text-xs font-semibold text-primary/70 uppercase">Email</th>
               <th className="p-4 text-xs font-semibold text-primary/70 uppercase">Role</th>
               <th className="p-4 text-xs font-semibold text-primary/70 uppercase text-center">Orders Handled</th>
               <th className="p-4 text-xs font-semibold text-primary/70 uppercase text-right">Actions</th>
@@ -147,7 +146,7 @@ export function StaffView() {
              {staff.map((s: any) => (
                <tr key={s.id} className="hover:bg-secondary/5 transition-colors">
                  <td className="p-4 text-sm font-medium text-primary">{s.username}</td>
-                 <td className="p-4 text-sm text-primary/70">{s.phoneNumber || s.email}</td>
+                 <td className="p-4 text-sm text-primary/70">{s.email}</td>
                  <td className="p-4 text-sm text-primary/70">{s.role === 'EMPLOYEE_OPS' ? 'Kitchen Staff' : 'Admin'}</td>
                  <td className="p-4 text-sm text-primary/70 text-center font-medium">
                    {s._count?.handledOrders || 0}

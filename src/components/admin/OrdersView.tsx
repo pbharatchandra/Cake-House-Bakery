@@ -101,7 +101,7 @@ export function OrdersView() {
     const matchesStatus = statusFilter === 'ALL' || order.status === statusFilter;
     
     return matchesSearch && matchesStatus;
-  });
+  }).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   return (
     <div className="bg-white rounded-xl border border-secondary/20 shadow-sm overflow-hidden flex flex-col h-full">

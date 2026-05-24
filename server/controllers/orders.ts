@@ -1,15 +1,21 @@
 import { Request, Response } from "express";
 import { db } from "../lib/db.js";
+import { webpush } from "../lib/webpush.js";
 
 export const getOrders = async (req: Request, res: Response) => {
   try {
+    const { userId } = req.query;
+    const whereClause = userId ? { userId: String(userId) } : {};
+    
     const orders = await db.order.findMany({
+      where: whereClause,
+      orderBy: { createdAt: 'desc' },
       include: {
         user: {
           select: { id: true, username: true, email: true, phoneNumber: true },
         },
         orderItems: {
-          include: { product: true },
+          include: { product: { include: { category: true } } },
         },
         handledBy: {
           select: { id: true, username: true },
@@ -68,13 +74,43 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
           select: { id: true, username: true, email: true, phoneNumber: true },
         },
         orderItems: {
-          include: { product: true },
+          include: { product: { include: { category: true } } },
         },
         handledBy: {
           select: { id: true, username: true },
         },
       },
     });
+
+    if (status && order.userId) {
+      try {
+        const subscriptions = await db.pushSubscription.findMany({
+          where: { userId: order.userId }
+        });
+        
+        let message = `Order #${order.id.slice(-6)} status: ${status}`;
+        if (status === 'READY') message = `Your order is ready for pickup!`;
+        if (status === 'DELIVERED') message = `Order completed. Enjoy!`;
+        if (status === 'PREPARING') message = `We started preparing your order.`;
+        
+        const payload = JSON.stringify({ title: 'Order Update', body: message });
+        
+        for (const sub of subscriptions) {
+          try {
+            await webpush.sendNotification({
+              endpoint: sub.endpoint,
+              keys: { p256dh: sub.p256dh, auth: sub.auth }
+            }, payload);
+          } catch (e: any) {
+             if (e.statusCode === 410) {
+               await db.pushSubscription.delete({ where: { id: sub.id } });
+             }
+          }
+        }
+      } catch (err) {
+        console.error("Push notification error:", err);
+      }
+    }
 
     res.json({ order });
   } catch (error) {
@@ -146,7 +182,11 @@ export const addOrderItems = async (req: Request, res: Response) => {
             },
           },
           orderItems: {
-            include: { product: true },
+            include: { 
+              product: {
+                include: { category: true }
+              }
+            },
           },
         },
       });

@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { Key } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Key, Search, ChevronDown } from 'lucide-react';
 import { ResetPasswordModal } from './ResetPasswordModal';
 
 export function CustomersView() {
   const [customers, setCustomers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [resetId, setResetId] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [searchBy, setSearchBy] = useState<'NAME' | 'PHONE'>('NAME');
 
   const fetchCustomers = async () => {
     try {
@@ -42,6 +44,15 @@ export function CustomersView() {
     alert('Password reset successfully.');
   };
 
+  const filteredCustomers = useMemo(() => {
+    return customers.filter(c => {
+      if (!searchTerm) return true;
+      const target = searchBy === 'NAME' ? c.username : c.phoneNumber;
+      if (!target) return false;
+      return target.toLowerCase().includes(searchTerm.toLowerCase());
+    });
+  }, [customers, searchTerm, searchBy]);
+
   if (loading) return <div>Loading...</div>;
 
   return (
@@ -52,8 +63,31 @@ export function CustomersView() {
         onSubmit={executeResetPassword}
         title="Reset Customer Password"
       />
-      <div className="p-6 border-b border-secondary/20">
+      <div className="p-6 border-b border-secondary/20 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <h3 className="text-lg font-serif font-bold text-primary">Customer Directory</h3>
+        <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+          <div className="relative flex-1 sm:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-primary/40" size={16} />
+            <input
+              type="text"
+              placeholder={`Search by ${searchBy.toLowerCase()}...`}
+              className="w-full pl-9 pr-4 py-2 border border-secondary/30 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-accent"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <div className="relative">
+            <select
+              value={searchBy}
+              onChange={(e) => setSearchBy(e.target.value as 'NAME' | 'PHONE')}
+              className="w-full pl-3 pr-8 py-2 border border-secondary/30 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-accent appearance-none bg-white"
+            >
+              <option value="NAME">Name</option>
+              <option value="PHONE">Phone Number</option>
+            </select>
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-primary/40 pointer-events-none" size={14} />
+          </div>
+        </div>
       </div>
       <table className="w-full text-left border-collapse">
         <thead>
@@ -65,7 +99,7 @@ export function CustomersView() {
           </tr>
         </thead>
         <tbody className="divide-y divide-secondary/10">
-           {customers.map((c: any) => (
+           {filteredCustomers.map((c: any) => (
              <tr key={c.id} className="hover:bg-secondary/5 transition-colors">
                <td className="p-4 text-sm font-medium text-primary">{c.username}</td>
                <td className="p-4 text-sm text-primary/70">{c.phoneNumber || '-'}</td>
@@ -80,7 +114,7 @@ export function CustomersView() {
                </td>
              </tr>
            ))}
-           {customers.length === 0 && (
+           {filteredCustomers.length === 0 && (
              <tr>
                <td colSpan={4} className="p-8 text-center text-primary/60 text-sm">No customers found.</td>
              </tr>
