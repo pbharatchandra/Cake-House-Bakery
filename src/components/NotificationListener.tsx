@@ -70,11 +70,13 @@ export function NotificationListener() {
     }
 
     let initialLoad = true;
+    const controller = new AbortController();
 
     // We can fetch just once to get the baseline, since the SW handles incoming push notifications, but we can also poll to update UI toasts in-app
     const fetchOrders = async () => {
       try {
         const res = await fetch(`/api/orders?userId=${user.id}`, {
+          signal: controller.signal,
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
@@ -112,15 +114,22 @@ export function NotificationListener() {
         });
 
         initialLoad = false;
-      } catch (error) {
+      } catch (error: any) {
+        if (error.name === 'AbortError' || error.message === 'Failed to fetch') return;
         console.error("Failed to fetch orders for notification:", error);
       }
     };
 
     fetchOrders(); // immediate
-    const interval = setInterval(fetchOrders, 30000); // Poll slower, rely on push
+    const sse = new EventSource('/api/orders/stream');
+    sse.onmessage = () => {
+      fetchOrders();
+    };
 
-    return () => clearInterval(interval);
+    return () => {
+      sse.close();
+      controller.abort();
+    };
   }, [user]);
 
   return <Toaster position="top-right" />;

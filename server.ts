@@ -8,6 +8,7 @@ import ordersRouter from "./server/routes/orders.js";
 import ticketsRouter from "./server/routes/tickets.js";
 import checkoutRouter from "./server/routes/checkout.js";
 import notificationsRouter from "./server/routes/notifications.js";
+import settingsRouter from "./server/routes/settings.js";
 import { PrismaClient } from "@prisma/client";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -33,6 +34,7 @@ async function startServer() {
   app.use("/api/tickets", ticketsRouter);
   app.use("/api/checkout", checkoutRouter);
   app.use("/api/notifications", notificationsRouter);
+  app.use("/api/settings", settingsRouter);
 
   // Background task to clean up expired reservations
   setInterval(async () => {

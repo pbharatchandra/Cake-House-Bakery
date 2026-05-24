@@ -8,6 +8,23 @@ export const reserveCart = async (req: Request, res: Response) => {
     const { items, userId } = req.body;
     // items: [{ productId, quantity }]
 
+    const storeStatusSetting = await db.setting.findUnique({ where: { key: 'store_status' } });
+    const isClosed = storeStatusSetting?.value === 'CLOSED';
+
+    if (isClosed) {
+      let isHandlerAdmin = false;
+      if (userId) {
+        const checkerUser = await db.user.findUnique({ where: { id: userId } });
+        if (checkerUser?.role === 'ADMIN') {
+          isHandlerAdmin = true;
+        }
+      }
+      
+      if (!isHandlerAdmin) {
+        return res.status(403).json({ error: "store is closed currently" });
+      }
+    }
+
     const reservationIds: string[] = [];
 
     // Start transaction to reserve items

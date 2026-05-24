@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, CheckCircle2, ChevronRight, AlertCircle, RefreshCw, Package, Plus, ShoppingCart, Search } from 'lucide-react';
+import { Clock, CheckCircle2, ChevronRight, AlertCircle, RefreshCw, Package, Plus, ShoppingCart, Search, Trash2 } from 'lucide-react';
 import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { AddProductModal } from '../components/AddProductModal';
@@ -8,6 +8,7 @@ import { CreateOfflineOrderModal } from '../components/CreateOfflineOrderModal';
 import { LoadingScreen } from '../components/LoadingScreen';
 import { ChangePasswordModal } from '../components/ChangePasswordModal';
 import { Settings } from 'lucide-react';
+import { useStoreStatus } from '../hooks/useStoreStatus';
 
 interface OrderItem {
   id: string;
@@ -58,6 +59,7 @@ export function FulfillmentDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [orderToAddItems, setOrderToAddItems] = useState<Order | null>(null);
   const { user, loading: authLoading } = useAuth();
+  const { storeStatus } = useStoreStatus();
 
   // Redirect if unauthorized
   if (authLoading) {
@@ -83,9 +85,28 @@ export function FulfillmentDashboard() {
 
   useEffect(() => {
     fetchOrders();
-    const interval = setInterval(fetchOrders, 3000);
-    return () => clearInterval(interval);
+    const sse = new EventSource('/api/orders/stream');
+    sse.onmessage = () => {
+      fetchOrders();
+    };
+    return () => sse.close();
   }, []);
+
+  const handleRemoveOrderItem = async (orderId: string, itemId: string) => {
+    try {
+      const res = await fetch(`/api/orders/${orderId}/items/${itemId}`, {
+        method: 'DELETE',
+      });
+      if (res.ok) {
+        fetchOrders();
+      } else {
+        const err = await res.json();
+        console.error("Failed to remove item", err);
+      }
+    } catch (err) {
+      console.error("Failed to remove item:", err);
+    }
+  };
 
   const updateOrderStatus = async (orderId: string, newStatus: string, tempPaymentMethod?: string, tempTransactionId?: string, cancelReason?: string, discount?: number) => {
     const previousOrders = [...orders];
@@ -222,8 +243,18 @@ export function FulfillmentDashboard() {
           <div className="flex flex-col md:flex-row items-center gap-3 w-full xl:w-auto mt-4 xl:mt-0">
             <div className="flex items-center w-full md:w-auto gap-2 justify-between md:justify-start overflow-x-auto pb-1 md:pb-0 scrollbar-hide">
               <button 
-                onClick={() => setIsOfflineModalOpen(true)} 
-                className="px-3 py-2 bg-primary-light text-secondary text-sm font-medium rounded-md hover:bg-primary-light/80 flex items-center gap-2 border border-secondary/20 whitespace-nowrap flex-shrink-0"
+                onClick={() => {
+                  if (storeStatus === 'CLOSED' && user?.role !== 'ADMIN') {
+                    alert("The store is closed. You cannot take offline orders right now. Only admins can take orders when closed.");
+                    return;
+                  }
+                  setIsOfflineModalOpen(true);
+                }} 
+                className={`px-3 py-2 text-sm font-medium rounded-md flex items-center gap-2 border border-secondary/20 whitespace-nowrap flex-shrink-0 transition-colors ${
+                  storeStatus === 'CLOSED' && user?.role !== 'ADMIN' 
+                    ? 'bg-primary-light/50 text-secondary/60 cursor-not-allowed' 
+                    : 'bg-primary-light text-secondary hover:bg-primary-light/80'
+                }`}
               >
                 <ShoppingCart size={16} />
                 <span className="hidden sm:inline">Offline Order</span>
@@ -342,6 +373,7 @@ export function FulfillmentDashboard() {
                           setCancellationReason('');
                         }}
                         onAddItems={() => setOrderToAddItems(order)}
+                        onRemoveItem={(itemId) => handleRemoveOrderItem(order.id, itemId)}
                         nextStatusText={getStatusButtonText(order.status)}
                       />
                     ))}
@@ -516,7 +548,7 @@ export function FulfillmentDashboard() {
   );
 }
 
-const OrderTicket: React.FC<{ order: Order, onAdvance: () => void | Promise<void>, onCancel?: () => void, onAddItems?: () => void, nextStatusText: string }> = ({ order, onAdvance, onCancel, onAddItems, nextStatusText }) => {
+const OrderTicket: React.FC<{ order: Order, onAdvance: () => void | Promise<void>, onCancel?: () => void, onAddItems?: () => void, onRemoveItem?: (itemId: string) => void, nextStatusText: string }> = ({ order, onAdvance, onCancel, onAddItems, onRemoveItem, nextStatusText }) => {
   const time = new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
   return (
@@ -588,8 +620,17 @@ const OrderTicket: React.FC<{ order: Order, onAdvance: () => void | Promise<void
         )}
         {order.orderItems.map(item => (
           <div key={item.id} className="border-b last:border-0 border-dashed border-primary/20 pb-3 last:pb-0">
-            <div className="flex justify-between font-medium">
+            <div className="flex justify-between font-medium items-center">
               <span>{item.quantity}x {item.product.name}</span>
+              {onRemoveItem && order.status !== 'CANCELLED' && order.status !== 'DELIVERED' && (
+                <button
+                  onClick={() => onRemoveItem(item.id)}
+                  className="text-red-500 hover:text-red-700 p-1"
+                  title="Remove Item"
+                >
+                  <Trash2 size={16} />
+                </button>
+              )}
             </div>
             
             {item.customizations && (

@@ -5,6 +5,8 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LoadingScreen } from './LoadingScreen';
 
+import { useStoreStatus } from '../hooks/useStoreStatus';
+
 interface CartModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -16,6 +18,7 @@ interface CartModalProps {
 
 export function CartModal({ isOpen, onClose, cart, removeFromCart, clearCart, refreshProducts }: CartModalProps) {
   const { user } = useAuth();
+  const { storeStatus } = useStoreStatus();
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [reserving, setReserving] = useState(false);
   const [reservationIds, setReservationIds] = useState<string[]>([]);
@@ -32,6 +35,10 @@ export function CartModal({ isOpen, onClose, cart, removeFromCart, clearCart, re
   
   const handleCheckoutInit = async () => {
     if (cart.length === 0) return;
+    if (storeStatus === 'CLOSED') {
+      alert("store is closed currently");
+      return;
+    }
     setReserving(true);
     try {
       const res = await fetch('/api/checkout/reserve', {
@@ -51,7 +58,7 @@ export function CartModal({ isOpen, onClose, cart, removeFromCart, clearCart, re
         setIsCheckingOut(true);
       } else {
         const err = await res.json();
-        alert(`Failed to reserve items: ${err.error}. Refreshing cart availability.`);
+        alert(err.error || "Failed to reserve items. Refreshing cart availability.");
         if (refreshProducts) {
           await refreshProducts();
         }
@@ -87,6 +94,10 @@ export function CartModal({ isOpen, onClose, cart, removeFromCart, clearCart, re
   };
 
   const handlePlaceOrder = async () => {
+    if (storeStatus === 'CLOSED') {
+      alert("store is closed currently");
+      return;
+    }
     if (!user) {
       handleClose();
       navigate('/auth');
@@ -129,7 +140,7 @@ export function CartModal({ isOpen, onClose, cart, removeFromCart, clearCart, re
       } else {
         const errData = await res.json();
         console.error('Failed to place order:', errData);
-        alert(`Failed to place order: ${errData.error || 'Unknown error'}`);
+        alert(errData.error || 'Failed to place order due to unknown error');
       }
     } catch (err: any) {
       console.error('Network error placing order:', err);
@@ -148,6 +159,15 @@ export function CartModal({ isOpen, onClose, cart, removeFromCart, clearCart, re
             <X size={24} />
           </button>
         </div>
+
+        {storeStatus === 'CLOSED' && (
+          <div className="bg-red-100 text-red-700 px-6 py-3 text-sm font-medium flex items-center gap-2 shrink-0">
+            <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            The store is currently closed. You cannot place new orders.
+          </div>
+        )}
 
         <div className="flex-1 overflow-y-auto p-6">
           {orderComplete ? (
@@ -266,7 +286,7 @@ export function CartModal({ isOpen, onClose, cart, removeFromCart, clearCart, re
                   onClick={handleCheckoutInit}
                   disabled={reserving}
                   className={`w-full py-3 rounded-md font-medium text-background transition-colors ${
-                    reserving ? 'bg-primary/50' : 'bg-primary hover:bg-primary/90'
+                    reserving || storeStatus === 'CLOSED' ? 'bg-primary/80 opacity-90' : 'bg-primary hover:bg-primary/90'
                   }`}
                 >
                   {reserving ? 'Reserving Items...' : 'Checkout'}

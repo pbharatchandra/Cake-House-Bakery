@@ -103,6 +103,12 @@ model Order {
   updatedAt          DateTime        @updatedAt
 }
 
+model Setting {
+  id    String @id @default(uuid())
+  key   String @unique
+  value String
+}
+
 model OrderItem {
   id             String   @id @default(uuid())
   orderId        String

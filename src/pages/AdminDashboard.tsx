@@ -31,9 +31,12 @@ import { StaffView } from "../components/admin/StaffView";
 import { CustomersView } from "../components/admin/CustomersView";
 import { OrdersView } from "../components/admin/OrdersView";
 import { AnalyticsView } from "../components/admin/AnalyticsView";
+import { useStoreStatus } from "../hooks/useStoreStatus";
+import { Store, Power, StoreIcon } from "lucide-react";
 
 export function AdminDashboard() {
   const { user, loading: authLoading } = useAuth();
+  const { storeStatus, updateStatus, loading: storeStatusLoading } = useStoreStatus();
   const [activeTab, setActiveTab] = useState<
     | "ANALYTICS"
     | "ORDERS"
@@ -73,13 +76,16 @@ export function AdminDashboard() {
     };
     fetchProducts();
     fetchOrders();
-    const interval = setInterval(() => {
+
+    const sse = new EventSource('/api/orders/stream');
+    sse.onmessage = () => {
       fetchProducts();
       fetchOrders();
-    }, 3000);
+    };
+
     return () => {
       mounts = false;
-      clearInterval(interval);
+      sse.close();
     };
   }, []);
 
@@ -96,11 +102,66 @@ export function AdminDashboard() {
       {loading && <LoadingScreen message="Loading dashboard data..." />}
       {/* Sidebar */}
       <aside className="w-64 bg-background border-r border-secondary/20 flex flex-col">
-        <div className="p-6 border-b border-secondary/20">
-          <h2 className="text-xl font-serif font-bold text-primary">
-            Cake House
-          </h2>
-          <p className="text-xs text-primary/60 font-medium">Command Center</p>
+        <div className="p-6 border-b border-secondary/20 flex items-center gap-3">
+          <Link
+            to="/"
+            className="text-primary/50 hover:text-primary transition-colors flex-shrink-0"
+            title="Back to Store"
+          >
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M10 19l-7-7m0 0l7-7m-7 7h18"
+              />
+            </svg>
+          </Link>
+          <div className="flex-1">
+            <h2 className="text-xl font-serif font-bold text-primary leading-tight">
+              Cake House
+            </h2>
+            <p className="text-xs text-primary/60 font-medium">Command Center</p>
+          </div>
+          <Settings
+            size={18}
+            className="text-primary/50 cursor-pointer hover:text-primary transition-colors flex-shrink-0"
+            onClick={() => setIsSettingsModalOpen(true)}
+            title="Account Settings"
+          />
+        </div>
+        <div className="p-4 border-b border-secondary/20">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-bold text-primary flex items-center gap-1.5">
+              <StoreIcon size={14} />
+              Store Status
+            </span>
+            {!storeStatusLoading && (
+              <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${storeStatus === 'OPEN' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                {storeStatus}
+              </span>
+            )}
+          </div>
+          <p className="text-[11px] text-primary/60 mb-3 leading-tight">
+            {storeStatus === 'OPEN' ? "Users can browse and place orders." : "Store is closed. Users cannot place new orders."}
+          </p>
+          <button
+            onClick={() => updateStatus(storeStatus === 'OPEN' ? 'CLOSED' : 'OPEN')}
+            disabled={storeStatusLoading}
+            className={`w-full py-1.5 rounded text-xs font-bold flex items-center justify-center gap-1.5 transition-colors ${
+              storeStatus === 'OPEN' 
+                ? 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200' 
+                : 'bg-green-50 text-green-600 hover:bg-green-100 border border-green-200'
+            }`}
+          >
+            <Power size={12} />
+            {storeStatus === 'OPEN' ? 'Close Store' : 'Open Store'}
+          </button>
         </div>
         <nav className="flex-1 p-4 space-y-2">
           <button
@@ -153,33 +214,6 @@ export function AdminDashboard() {
             <span className="font-medium text-sm">Customers</span>
           </button>
         </nav>
-        <div className="p-4 border-t border-secondary/20 text-xs flex justify-between items-center text-primary/50">
-          <Link
-            to="/"
-            className="flex items-center gap-1 hover:text-primary transition-colors group font-medium text-sm"
-          >
-            <svg
-              className="w-4 h-4 group-hover:-translate-x-1 transition-transform"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M10 19l-7-7m0 0l7-7m-7 7h18"
-              />
-            </svg>
-            Back to Store
-          </Link>
-          <Settings
-            size={16}
-            className="cursor-pointer hover:text-primary transition-colors"
-            onClick={() => setIsSettingsModalOpen(true)}
-            title="Account Settings"
-          />
-        </div>
       </aside>
 
       {/* Main Content */}

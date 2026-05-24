@@ -150,7 +150,7 @@ export const CreateOfflineOrderModal: React.FC<Props> = ({
         onClose();
       } else {
         const data = await res.json();
-        alert("Failed to create order: " + (data.error || "Unknown error"));
+        alert(data.error || "Failed to create order due to unknown error");
       }
     } catch (error) {
       console.error("Error creating order:", error);

@@ -19,18 +19,31 @@ export function CustomerOrdersModal({ isOpen, onClose }: CustomerOrdersModalProp
   useEffect(() => {
     if (isOpen && user) {
       setLoading(true);
-      Promise.all([
-        fetch('/api/orders').then(res => res.json()),
-        fetch('/api/tickets').then(res => res.json())
-      ])
-        .then(([ordersData, ticketsData]) => {
-          const userOrders = ordersData.orders?.filter((o: any) => o.userId === user.id) || [];
-          const userTickets = ticketsData.tickets?.filter((t: any) => t.userId === user.id) || [];
-          setOrders(userOrders);
-          setTickets(userTickets);
-        })
-        .catch(console.error)
-        .finally(() => setLoading(false));
+      const fetchData = () => {
+        Promise.all([
+          fetch('/api/orders').then(res => res.json()),
+          fetch('/api/tickets').then(res => res.json())
+        ])
+          .then(([ordersData, ticketsData]) => {
+            const userOrders = ordersData.orders?.filter((o: any) => o.userId === user.id) || [];
+            const userTickets = ticketsData.tickets?.filter((t: any) => t.userId === user.id) || [];
+            setOrders(userOrders);
+            setTickets(userTickets);
+          })
+          .catch(console.error)
+          .finally(() => setLoading(false));
+      };
+
+      fetchData();
+      
+      const sse = new EventSource('/api/orders/stream');
+      sse.onmessage = () => {
+        fetchData();
+      };
+      
+      return () => {
+        sse.close();
+      };
     }
   }, [isOpen, user]);
 

@@ -1,6 +1,25 @@
 import { Request, Response } from "express";
 import { db } from "../lib/db.js";
 import { webpush } from "../lib/webpush.js";
+import { orderEvents } from "../lib/events.js";
+
+export const streamOrders = (req: Request, res: Response) => {
+  res.writeHead(200, {
+    "Content-Type": "text/event-stream",
+    "Cache-Control": "no-cache",
+    "Connection": "keep-alive",
+  });
+
+  const listener = () => {
+    res.write(`data: trigger\n\n`);
+  };
+
+  orderEvents.on("update", listener);
+
+  req.on("close", () => {
+    orderEvents.off("update", listener);
+  });
+};
 
 export const getOrders = async (req: Request, res: Response) => {
   try {
@@ -117,6 +136,7 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
       }
     }
 
+    orderEvents.emit("update");
     res.json({ order });
   } catch (error) {
     console.error("Update order status error:", error);
@@ -197,10 +217,91 @@ export const addOrderItems = async (req: Request, res: Response) => {
       });
     });
 
+    orderEvents.emit("update");
     res.json({ order: updatedOrder });
   } catch (error) {
     console.error("Add order items error:", error);
     res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+export const removeOrderItem = async (req: Request, res: Response) => {
+  try {
+    const { id, itemId } = req.params;
+
+    const updatedOrder = await db.$transaction(async (tx) => {
+      // Get the order item
+      const orderItem = await tx.orderItem.findUnique({
+        where: { id: itemId },
+        include: { order: true }
+      });
+
+      if (!orderItem) {
+        throw new Error("Order item not found");
+      }
+
+      if (orderItem.orderId !== id) {
+        throw new Error("Order item does not belong to this order");
+      }
+
+      // Restore stock
+      if (orderItem.productId) {
+        const product = await tx.product.findUnique({
+          where: { id: orderItem.productId }
+        });
+
+        if (product) {
+          await tx.product.update({
+            where: { id: orderItem.productId },
+            data: {
+              stockLevel: product.stockLevel + orderItem.quantity
+            }
+          });
+        }
+      }
+
+      // Calculate amount to deduct
+      const amountToDeduct = orderItem.price * orderItem.quantity;
+      const newTotalAmount = Math.max(0, orderItem.order.totalAmount - amountToDeduct);
+
+      // Remove the item
+      await tx.orderItem.delete({
+        where: { id: itemId }
+      });
+
+      // Update the order, check if we should delete Order if no items remain? 
+      // User says "remove the product from the order". If total goes under 0 is handled.
+      // If we need order to still exist empty, we just update it.
+      return await tx.order.update({
+        where: { id },
+        data: {
+          totalAmount: newTotalAmount,
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              username: true,
+              email: true,
+              phoneNumber: true,
+            },
+          },
+          orderItems: {
+            include: { 
+              product: {
+                include: { category: true }
+              }
+            },
+          },
+        },
+      });
+    });
+
+    orderEvents.emit("update");
+    res.json({ order: updatedOrder });
+  } catch (error) {
+    console.error("Remove order item error:", error);
+    res.status(500).json({ error: (error as Error).message || "Internal server error" });
   }
 };
 
@@ -217,6 +318,24 @@ export const createOrder = async (req: Request, res: Response) => {
       customerName,
     } = req.body;
     // items: [{ productId, quantity, price, customizations }]
+
+    const storeStatusSetting = await db.setting.findUnique({ where: { key: 'store_status' } });
+    const isClosed = storeStatusSetting?.value === 'CLOSED';
+
+    if (isClosed) {
+      let isHandlerAdmin = false;
+      const checkerId = handledById || userId;
+      if (checkerId) {
+        const checkerUser = await db.user.findUnique({ where: { id: checkerId } });
+        if (checkerUser?.role === 'ADMIN') {
+          isHandlerAdmin = true;
+        }
+      }
+      
+      if (!isHandlerAdmin) {
+        return res.status(403).json({ error: "store is closed currently" });
+      }
+    }
 
     let resolvedUserId = userId;
 
@@ -346,6 +465,7 @@ export const createOrder = async (req: Request, res: Response) => {
       return newOrder;
     });
 
+    orderEvents.emit("update");
     res.status(201).json({ order });
   } catch (error) {
     console.error("Create order error:", error);
