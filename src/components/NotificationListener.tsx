@@ -40,7 +40,9 @@ export function NotificationListener() {
           const { publicKey } = await res.json();
           
           const registration = await navigator.serviceWorker.register('/sw.js');
-          const subscription = await registration.pushManager.subscribe({
+          const readyRegistration = await navigator.serviceWorker.ready;
+          
+          const subscription = await readyRegistration.pushManager.subscribe({
             userVisibleOnly: true,
             applicationServerKey: urlBase64ToUint8Array(publicKey)
           });

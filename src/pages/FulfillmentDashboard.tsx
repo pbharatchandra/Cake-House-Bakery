@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, CheckCircle2, ChevronRight, AlertCircle, RefreshCw, Package, Plus, ShoppingCart } from 'lucide-react';
+import { Clock, CheckCircle2, ChevronRight, AlertCircle, RefreshCw, Package, Plus, ShoppingCart, Search } from 'lucide-react';
 import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { AddProductModal } from '../components/AddProductModal';
@@ -624,6 +624,7 @@ const OrderTicket: React.FC<{ order: Order, onAdvance: () => void | Promise<void
 function KitchenInventory() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     fetchProducts();
@@ -675,19 +676,35 @@ function KitchenInventory() {
     return <LoadingScreen message="Loading inventory..." />;
   }
 
+  const filteredProducts = products.filter(product =>
+    product.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <div className="max-w-4xl mx-auto bg-background rounded-xl shadow-sm border border-secondary/20 overflow-hidden">
-      <div className="p-6 border-b border-secondary/20 bg-secondary/5 flex justify-between items-center">
+      <div className="p-6 border-b border-secondary/20 bg-secondary/5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h2 className="text-xl font-serif font-bold text-primary flex items-center gap-2">
           <Package className="w-5 h-5 text-accent" />
           Live Inventory Management
         </h2>
-        <button onClick={fetchProducts} className="text-primary/60 hover:text-primary transition-colors">
-          <RefreshCw size={18} />
-        </button>
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <div className="relative flex-1 sm:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-primary/40" size={16} />
+            <input
+              type="text"
+              placeholder="Search products..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 border border-secondary/30 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-accent"
+            />
+          </div>
+          <button onClick={fetchProducts} className="text-primary/60 hover:text-primary transition-colors">
+            <RefreshCw size={18} />
+          </button>
+        </div>
       </div>
       <div className="divide-y divide-secondary/10">
-        {products.map(product => (
+        {filteredProducts.map(product => (
           <div key={product.id} className="p-4 flex items-center justify-between hover:bg-secondary/5 transition-colors">
             <div>
               <h3 className="font-bold text-primary">{product.name}</h3>

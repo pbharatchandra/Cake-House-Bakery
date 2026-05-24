@@ -82,16 +82,21 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
       },
     });
 
-    if (status && order.userId) {
+    if ((status === 'READY' || status === 'CANCELLED') && order.userId) {
       try {
         const subscriptions = await db.pushSubscription.findMany({
           where: { userId: order.userId }
         });
         
-        let message = `Order #${order.id.slice(-6)} status: ${status}`;
-        if (status === 'READY') message = `Your order is ready for pickup!`;
-        if (status === 'DELIVERED') message = `Order completed. Enjoy!`;
-        if (status === 'PREPARING') message = `We started preparing your order.`;
+        let message = '';
+        if (status === 'READY') {
+          message = `Your order #${order.id.slice(-6)} is ready for pickup!`;
+        } else if (status === 'CANCELLED') {
+          message = `Your order #${order.id.slice(-6)} was cancelled.`;
+          if (cancellationReason) {
+            message += ` Reason: ${cancellationReason}`;
+          }
+        }
         
         const payload = JSON.stringify({ title: 'Order Update', body: message });
         
