@@ -1,4 +1,4 @@
-export function Hero() {
+export function Hero({ onOrderClick }: { onOrderClick: () => void }) {
   return (
     <div className="relative h-[60vh] min-h-[500px] flex items-center justify-center overflow-hidden">
       {/* Background Image */}
@@ -20,7 +20,9 @@ export function Hero() {
         <p className="text-lg md:text-xl text-secondary mb-10 font-medium">
           Handcrafted sourdough, delicate pastries, and custom cakes baked fresh daily with stone-milled flour and generations of love.
         </p>
-        <button className="px-8 py-3 bg-accent text-background font-medium text-lg rounded-sm shadow-lg hover:bg-accent/90 transform hover:-translate-y-0.5 transition-all">
+        <button 
+          onClick={onOrderClick}
+          className="px-8 py-3 bg-accent text-background font-medium text-lg rounded-sm shadow-lg hover:bg-accent/90 transform hover:-translate-y-0.5 transition-all">
           Order for Pickup
         </button>
       </div>

@@ -61,14 +61,21 @@ export function Storefront() {
       return 0; // 'none'
     });
 
+  const scrollToProducts = () => {
+    const productsSection = document.getElementById('fresh-from-the-oven');
+    if (productsSection) {
+      productsSection.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-background selection:bg-accent/20">
       <Header categories={categories} cartCount={cartItemCount} onSelectCategory={setSelectedCategory} onCartOpen={() => setIsCartOpen(true)} onOrdersOpen={() => setIsOrdersOpen(true)} />
       
       <main className="flex-grow">
-        {!selectedCategory && <Hero />}
+        {!selectedCategory && <Hero onOrderClick={scrollToProducts} />}
 
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <section id="fresh-from-the-oven" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 border-b border-secondary pb-4 gap-4">
             <div>
               <h2 className="text-3xl font-serif font-bold text-primary mb-2">

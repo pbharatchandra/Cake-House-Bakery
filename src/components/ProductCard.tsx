@@ -23,7 +23,7 @@ export function ProductCard({ product, cart = [], onAdd, onUpdateQuantity }: Pro
   const isOutOfStock = remainingStock === 0;
 
   return (
-    <div className="bg-background border border-primary/10 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow group flex flex-col">
+    <div className="bg-background border border-primary/10 rounded-md overflow-hidden shadow-sm hover:shadow-md transition-shadow group flex flex-col">
       <div className="relative h-36 sm:h-48 md:h-64 overflow-hidden bg-secondary">
         {product.image ? (
           <img 
