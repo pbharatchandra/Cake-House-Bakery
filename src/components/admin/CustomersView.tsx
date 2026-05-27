@@ -5,6 +5,7 @@ import { ResetPasswordModal } from './ResetPasswordModal';
 export function CustomersView() {
   const [customers, setCustomers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [errorStr, setErrorStr] = useState<string | null>(null);
   const [resetId, setResetId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [searchBy, setSearchBy] = useState<'NAME' | 'PHONE'>('NAME');
@@ -14,10 +15,13 @@ export function CustomersView() {
       const res = await fetch('/api/auth/users');
       const data = await res.json();
       if (res.ok) {
-        setCustomers(data.users.filter((u: any) => u.role === 'CUSTOMER'));
+        setCustomers(data.users.filter((u: any) => u.role?.toUpperCase() === 'CUSTOMER'));
+      } else {
+        setErrorStr(data.error || 'Failed to load customers');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      setErrorStr(err.message || 'Error parsing response');
     } finally {
       setLoading(false);
     }
@@ -47,11 +51,12 @@ export function CustomersView() {
   const filteredCustomers = useMemo(() => {
     return customers.filter(c => {
       if (!searchTerm) return true;
-      const target = searchBy === 'NAME' ? c.username : c.phoneNumber;
-      if (!target) return false;
-      return target.toLowerCase().includes(searchTerm.toLowerCase());
+      const search = searchTerm.toLowerCase();
+      const matchName = c.username?.toLowerCase().includes(search);
+      const matchPhone = c.phoneNumber?.toLowerCase().includes(search);
+      return matchName || matchPhone;
     });
-  }, [customers, searchTerm, searchBy]);
+  }, [customers, searchTerm]);
 
   if (loading) return <div>Loading...</div>;
 
@@ -70,22 +75,11 @@ export function CustomersView() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-primary/40" size={16} />
             <input
               type="text"
-              placeholder={`Search by ${searchBy.toLowerCase()}...`}
+              placeholder="Search customers..."
               className="w-full pl-9 pr-4 py-2 border border-secondary/30 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-accent"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
-          </div>
-          <div className="relative">
-            <select
-              value={searchBy}
-              onChange={(e) => setSearchBy(e.target.value as 'NAME' | 'PHONE')}
-              className="w-full pl-3 pr-8 py-2 border border-secondary/30 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-accent appearance-none bg-white"
-            >
-              <option value="NAME">Name</option>
-              <option value="PHONE">Phone Number</option>
-            </select>
-            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-primary/40 pointer-events-none" size={14} />
           </div>
         </div>
       </div>
@@ -99,7 +93,12 @@ export function CustomersView() {
           </tr>
         </thead>
         <tbody className="divide-y divide-secondary/10">
-           {filteredCustomers.map((c: any) => (
+           {errorStr && (
+             <tr>
+               <td colSpan={4} className="p-8 text-center text-red-500 text-sm">{errorStr}</td>
+             </tr>
+           )}
+           {!errorStr && filteredCustomers.map((c: any) => (
              <tr key={c.id} className="hover:bg-secondary/5 transition-colors">
                <td className="p-4 text-sm font-medium text-primary">{c.username}</td>
                <td className="p-4 text-sm text-primary/70">{c.phoneNumber || '-'}</td>
@@ -114,7 +113,7 @@ export function CustomersView() {
                </td>
              </tr>
            ))}
-           {filteredCustomers.length === 0 && (
+           {!errorStr && filteredCustomers.length === 0 && (
              <tr>
                <td colSpan={4} className="p-8 text-center text-primary/60 text-sm">No customers found.</td>
              </tr>

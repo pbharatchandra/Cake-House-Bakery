@@ -31,8 +31,9 @@ import { StaffView } from "../components/admin/StaffView";
 import { CustomersView } from "../components/admin/CustomersView";
 import { OrdersView } from "../components/admin/OrdersView";
 import { AnalyticsView } from "../components/admin/AnalyticsView";
+import { BackupView } from "../components/admin/BackupView";
 import { useStoreStatus } from "../hooks/useStoreStatus";
-import { Store, Power, StoreIcon } from "lucide-react";
+import { Store, Power, StoreIcon, Database } from "lucide-react";
 
 export function AdminDashboard() {
   const { user, loading: authLoading } = useAuth();
@@ -45,6 +46,7 @@ export function AdminDashboard() {
     | "PAYMENTS"
     | "STAFF"
     | "CUSTOMERS"
+    | "BACKUP"
   >("ANALYTICS");
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
@@ -98,44 +100,48 @@ export function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-secondary/10 text-primary flex font-sans">
+    <div className="min-h-screen bg-secondary/10 text-primary flex flex-col md:flex-row font-sans">
       {loading && <LoadingScreen message="Loading dashboard data..." />}
       {/* Sidebar */}
-      <aside className="w-64 bg-background border-r border-secondary/20 flex flex-col">
-        <div className="p-6 border-b border-secondary/20 flex items-center gap-3">
-          <Link
-            to="/"
-            className="text-primary/50 hover:text-primary transition-colors flex-shrink-0"
-            title="Back to Store"
-          >
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
+      <aside className="w-full md:w-64 bg-background border-b md:border-r md:border-b-0 border-secondary/20 flex flex-col z-20">
+        <div className="p-4 md:p-6 border-b border-secondary/20 flex items-center justify-between md:justify-start gap-3">
+          <div className="flex items-center gap-3">
+            <Link
+              to="/"
+              className="text-primary/50 hover:text-primary transition-colors flex-shrink-0"
+              title="Back to Store"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M10 19l-7-7m0 0l7-7m-7 7h18"
-              />
-            </svg>
-          </Link>
-          <div className="flex-1">
-            <h2 className="text-xl font-serif font-bold text-primary leading-tight">
-              Cake House
-            </h2>
-            <p className="text-xs text-primary/60 font-medium">Command Center</p>
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                />
+              </svg>
+            </Link>
+            <div className="flex-1">
+              <h2 className="text-xl font-serif font-bold text-primary leading-tight">
+                Cake House
+              </h2>
+              <p className="text-xs text-primary/60 font-medium md:block hidden">Command Center</p>
+            </div>
           </div>
-          <Settings
-            size={18}
-            className="text-primary/50 cursor-pointer hover:text-primary transition-colors flex-shrink-0"
-            onClick={() => setIsSettingsModalOpen(true)}
-            title="Account Settings"
-          />
+          <div className="flex items-center gap-3">
+            <Settings
+              size={18}
+              className="text-primary/50 cursor-pointer hover:text-primary transition-colors flex-shrink-0"
+              onClick={() => setIsSettingsModalOpen(true)}
+              title="Account Settings"
+            />
+          </div>
         </div>
-        <div className="p-4 border-b border-secondary/20">
+        <div className="p-4 border-b border-secondary/20 block">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-bold text-primary flex items-center gap-1.5">
               <StoreIcon size={14} />
@@ -163,64 +169,71 @@ export function AdminDashboard() {
             {storeStatus === 'OPEN' ? 'Close Store' : 'Open Store'}
           </button>
         </div>
-        <nav className="flex-1 p-4 space-y-2">
+        <nav className="flex md:flex-col p-2 md:p-4 space-x-2 md:space-x-0 md:space-y-2 overflow-x-auto whitespace-nowrap hide-scrollbar">
           <button
             onClick={() => setActiveTab("ANALYTICS")}
-            className={`w-full flex items-center space-x-3 px-4 py-3 rounded-md transition-colors ${activeTab === "ANALYTICS" ? "bg-primary text-background" : "hover:bg-secondary/30 text-primary/80"}`}
+            className={`flex items-center space-x-2 md:space-x-3 px-3 py-2 md:px-4 md:py-3 rounded-md transition-colors ${activeTab === "ANALYTICS" ? "bg-primary text-background" : "hover:bg-secondary/30 text-primary/80"}`}
           >
             <Activity size={18} />
-            <span className="font-medium text-sm">Analytics HUD</span>
+            <span className="font-medium text-sm">Analytics</span>
           </button>
           <button
             onClick={() => setActiveTab("ORDERS")}
-            className={`w-full flex items-center space-x-3 px-4 py-3 rounded-md transition-colors ${activeTab === "ORDERS" ? "bg-primary text-background" : "hover:bg-secondary/30 text-primary/80"}`}
+            className={`flex items-center space-x-2 md:space-x-3 px-3 py-2 md:px-4 md:py-3 rounded-md transition-colors ${activeTab === "ORDERS" ? "bg-primary text-background" : "hover:bg-secondary/30 text-primary/80"}`}
           >
             <ShoppingCart size={18} />
-            <span className="font-medium text-sm">Active Orders</span>
+            <span className="font-medium text-sm">Orders</span>
           </button>
           <button
             onClick={() => setActiveTab("INVENTORY")}
-            className={`w-full flex items-center space-x-3 px-4 py-3 rounded-md transition-colors ${activeTab === "INVENTORY" ? "bg-primary text-background" : "hover:bg-secondary/30 text-primary/80"}`}
+            className={`flex items-center space-x-2 md:space-x-3 px-3 py-2 md:px-4 md:py-3 rounded-md transition-colors ${activeTab === "INVENTORY" ? "bg-primary text-background" : "hover:bg-secondary/30 text-primary/80"}`}
           >
             <Package size={18} />
-            <span className="font-medium text-sm">Global Inventory</span>
-          </button>
-          <button
-            onClick={() => setActiveTab("SUPPORT")}
-            className={`w-full flex items-center space-x-3 px-4 py-3 rounded-md transition-colors ${activeTab === "SUPPORT" ? "bg-primary text-background" : "hover:bg-secondary/30 text-primary/80"}`}
-          >
-            <Users size={18} />
-            <span className="font-medium text-sm">Support Hub</span>
+            <span className="font-medium text-sm">Inventory</span>
           </button>
           <button
             onClick={() => setActiveTab("PAYMENTS")}
-            className={`w-full flex items-center space-x-3 px-4 py-3 rounded-md transition-colors ${activeTab === "PAYMENTS" ? "bg-primary text-background" : "hover:bg-secondary/30 text-primary/80"}`}
+            className={`flex items-center space-x-2 md:space-x-3 px-3 py-2 md:px-4 md:py-3 rounded-md transition-colors ${activeTab === "PAYMENTS" ? "bg-primary text-background" : "hover:bg-secondary/30 text-primary/80"}`}
           >
             <CreditCard size={18} />
             <span className="font-medium text-sm">Payments</span>
           </button>
           <button
+            onClick={() => setActiveTab("SUPPORT")}
+            className={`flex items-center space-x-2 md:space-x-3 px-3 py-2 md:px-4 md:py-3 rounded-md transition-colors ${activeTab === "SUPPORT" ? "bg-primary text-background" : "hover:bg-secondary/30 text-primary/80"}`}
+          >
+            <AlertCircle size={18} />
+            <span className="font-medium text-sm">Support</span>
+          </button>
+          <button
             onClick={() => setActiveTab("STAFF")}
-            className={`w-full flex items-center space-x-3 px-4 py-3 rounded-md transition-colors ${activeTab === "STAFF" ? "bg-primary text-background" : "hover:bg-secondary/30 text-primary/80"}`}
+            className={`flex items-center space-x-2 md:space-x-3 px-3 py-2 md:px-4 md:py-3 rounded-md transition-colors ${activeTab === "STAFF" ? "bg-primary text-background" : "hover:bg-secondary/30 text-primary/80"}`}
           >
             <Users size={18} />
-            <span className="font-medium text-sm">Employers</span>
+            <span className="font-medium text-sm">Staff</span>
           </button>
           <button
             onClick={() => setActiveTab("CUSTOMERS")}
-            className={`w-full flex items-center space-x-3 px-4 py-3 rounded-md transition-colors ${activeTab === "CUSTOMERS" ? "bg-primary text-background" : "hover:bg-secondary/30 text-primary/80"}`}
+            className={`flex items-center space-x-2 md:space-x-3 px-3 py-2 md:px-4 md:py-3 rounded-md transition-colors ${activeTab === "CUSTOMERS" ? "bg-primary text-background" : "hover:bg-secondary/30 text-primary/80"}`}
           >
             <Users size={18} />
             <span className="font-medium text-sm">Customers</span>
+          </button>
+          <button
+            onClick={() => setActiveTab("BACKUP")}
+            className={`flex items-center space-x-2 md:space-x-3 px-3 py-2 md:px-4 md:py-3 rounded-md transition-colors ${activeTab === "BACKUP" ? "bg-primary text-background" : "hover:bg-secondary/30 text-primary/80"}`}
+          >
+            <Database size={18} />
+            <span className="font-medium text-sm">Backups</span>
           </button>
         </nav>
       </aside>
 
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto bg-[#FDFDFD]">
-        <header className="px-10 py-8 flex justify-between items-end">
+        <header className="px-4 md:px-10 py-4 md:py-8 flex flex-col md:flex-row md:justify-between items-start md:items-end gap-4 md:gap-0">
           <div>
-            <h1 className="text-3xl font-serif font-bold tracking-tight">
+            <h1 className="text-xl md:text-3xl font-serif font-bold tracking-tight">
               {activeTab === "ANALYTICS" && "Performance Overview"}
               {activeTab === "ORDERS" && "Orders Fulfillment"}
               {activeTab === "INVENTORY" && "Inventory Control"}
@@ -228,8 +241,9 @@ export function AdminDashboard() {
               {activeTab === "PAYMENTS" && "Payments History"}
               {activeTab === "STAFF" && "Staff & Employers"}
               {activeTab === "CUSTOMERS" && "Customer Directory"}
+              {activeTab === "BACKUP" && "System Backups"}
             </h1>
-            <p className="text-sm text-primary/60 mt-1">
+            <p className="text-xs md:text-sm text-primary/60 mt-1">
               {new Date().toLocaleDateString("en-US", {
                 weekday: "long",
                 year: "numeric",
@@ -239,8 +253,8 @@ export function AdminDashboard() {
             </p>
           </div>
 
-          <div className="flex items-center gap-4">
-            <div className="relative w-64 group h-10">
+          <div className="flex items-center gap-4 w-full md:w-auto">
+            <div className="relative w-full md:w-64 group h-10">
               <Search
                 size={16}
                 className="absolute left-3 top-1/2 -translate-y-1/2 text-primary/40 group-focus-within:text-accent transition-colors"
@@ -256,7 +270,7 @@ export function AdminDashboard() {
           </div>
         </header>
 
-        <div className="px-10 pb-12">
+        <div className="px-4 md:px-10 pb-8 md:pb-12">
           {activeTab === "ANALYTICS" && (
             <AnalyticsView orders={orders} products={products} />
           )}
@@ -270,6 +284,7 @@ export function AdminDashboard() {
           )}
           {activeTab === "STAFF" && <StaffView />}
           {activeTab === "CUSTOMERS" && <CustomersView />}
+          {activeTab === "BACKUP" && <BackupView />}
         </div>
 
         {isSettingsModalOpen && (
@@ -539,154 +554,6 @@ function InventoryView({
 }
 
 // ----------------------------------------------------------------------
-// Support View
-// ----------------------------------------------------------------------
-function SupportView() {
-  const [tickets, setTickets] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<string>("ALL");
-  const [sortBy, setSortBy] = useState<"newest" | "oldest">("newest");
-
-  useEffect(() => {
-    const fetchTickets = () => {
-      fetch("/api/tickets")
-        .then((res) => res.json())
-        .then((data) => {
-          setTickets(data.tickets || []);
-          setLoading(false);
-        })
-        .catch((err) => {
-          console.error(err);
-          setLoading(false);
-        });
-    };
-    fetchTickets();
-    const interval = setInterval(fetchTickets, 5000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const updateTicketStatus = async (id: string, status: string) => {
-    setTickets(tickets.map((t) => (t.id === id ? { ...t, status } : t)));
-    try {
-      await fetch(`/api/tickets/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
-      });
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  if (loading && tickets.length === 0) {
-    return <LoadingScreen message="Loading tickets..." />;
-  }
-
-  const filteredTickets = tickets
-    .filter((t) => filter === "ALL" || t.status === filter)
-    .sort((a, b) => {
-      if (sortBy === "newest")
-        return (
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        );
-      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-    });
-
-  return (
-    <div className="bg-white rounded-xl border border-secondary/20 shadow-sm overflow-hidden p-6 space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-secondary/20 pb-4 gap-4">
-        <h3 className="font-bold text-xl text-primary">Customer Support Hub</h3>
-        <div className="flex items-center gap-3">
-          <select
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            className="text-sm px-3 py-1.5 border border-secondary/30 rounded-md focus:outline-none focus:ring-1 focus:ring-accent bg-background"
-          >
-            <option value="ALL">All Statuses</option>
-            <option value="OPEN">Open</option>
-            <option value="IN_PROGRESS">In Progress</option>
-            <option value="RESOLVED">Resolved</option>
-          </select>
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as any)}
-            className="text-sm px-3 py-1.5 border border-secondary/30 rounded-md focus:outline-none focus:ring-1 focus:ring-accent bg-background"
-          >
-            <option value="newest">Newest First</option>
-            <option value="oldest">Oldest First</option>
-          </select>
-        </div>
-      </div>
-
-      {filteredTickets.length === 0 ? (
-        <div className="text-center py-20 text-primary/50">
-          <AlertCircle size={48} className="mx-auto text-primary/30 mb-4" />
-          <p className="text-lg font-bold mb-2">No Tickets Found</p>
-          <p>No customer support queries match the current filters.</p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {filteredTickets.map((ticket) => (
-            <div
-              key={ticket.id}
-              className="border border-secondary/30 rounded-lg p-5 hover:bg-secondary/5 transition-colors"
-            >
-              <div className="flex justify-between items-start mb-3">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-1">
-                    <span
-                      className={`px-2 py-1 text-xs font-bold rounded-full ${ticket.status === "OPEN" ? "bg-red-100 text-red-700" : ticket.status === "IN_PROGRESS" ? "bg-yellow-100 text-yellow-700" : "bg-green-100 text-green-700"}`}
-                    >
-                      {ticket.status}
-                    </span>
-                    <h4 className="font-bold text-primary">{ticket.subject}</h4>
-                    {ticket.orderId && (
-                      <span className="text-xs font-mono text-primary/60 bg-secondary/20 px-2 py-0.5 rounded">
-                        Order #{ticket.orderId.substring(0, 8)}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-primary/60 mt-1">
-                    {ticket.user
-                      ? `User: ${ticket.user.username} (${ticket.user.phoneNumber || "No phone"})`
-                      : ticket.userId
-                        ? `User ID: ${ticket.userId}`
-                        : `Guest: Unknown`}
-                  </p>
-                </div>
-                <div className="text-xs text-primary/50 text-right">
-                  {new Date(ticket.createdAt).toLocaleString()}
-                </div>
-              </div>
-              <p className="text-sm text-primary/80 bg-secondary/10 p-3 rounded-md mb-4">
-                {ticket.message}
-              </p>
-
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-medium text-primary/60">
-                  Update Status:
-                </span>
-                <select
-                  value={ticket.status}
-                  onChange={(e) =>
-                    updateTicketStatus(ticket.id, e.target.value)
-                  }
-                  className="text-sm border border-secondary/30 rounded-md px-2 py-1 focus:outline-none focus:border-accent bg-transparent"
-                >
-                  <option value="OPEN">Open</option>
-                  <option value="IN_PROGRESS">In Progress</option>
-                  <option value="RESOLVED">Resolved</option>
-                </select>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ----------------------------------------------------------------------
 // Payments View
 // ----------------------------------------------------------------------
 function PaymentsView({
@@ -840,6 +707,154 @@ function PaymentsView({
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ----------------------------------------------------------------------
+// Support View
+// ----------------------------------------------------------------------
+function SupportView() {
+  const [tickets, setTickets] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<string>("ALL");
+  const [sortBy, setSortBy] = useState<"newest" | "oldest">("newest");
+
+  useEffect(() => {
+    const fetchTickets = () => {
+      fetch("/api/tickets")
+        .then((res) => res.json())
+        .then((data) => {
+          setTickets(data.tickets || []);
+          setLoading(false);
+        })
+        .catch((err) => {
+          console.error(err);
+          setLoading(false);
+        });
+    };
+    fetchTickets();
+    const interval = setInterval(fetchTickets, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const updateTicketStatus = async (id: string, status: string) => {
+    setTickets(tickets.map((t) => (t.id === id ? { ...t, status } : t)));
+    try {
+      await fetch(`/api/tickets/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  if (loading && tickets.length === 0) {
+    return <LoadingScreen message="Loading tickets..." />;
+  }
+
+  const filteredTickets = tickets
+    .filter((t) => filter === "ALL" || t.status === filter)
+    .sort((a, b) => {
+      if (sortBy === "newest")
+        return (
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    });
+
+  return (
+    <div className="bg-white rounded-xl border border-secondary/20 shadow-sm overflow-hidden p-6 space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-secondary/20 pb-4 gap-4">
+        <h3 className="font-bold text-xl text-primary">Customer Support Hub</h3>
+        <div className="flex items-center gap-3">
+          <select
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            className="text-sm px-3 py-1.5 border border-secondary/30 rounded-md focus:outline-none focus:ring-1 focus:ring-accent bg-background"
+          >
+            <option value="ALL">All Statuses</option>
+            <option value="OPEN">Open</option>
+            <option value="IN_PROGRESS">In Progress</option>
+            <option value="RESOLVED">Resolved</option>
+          </select>
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as any)}
+            className="text-sm px-3 py-1.5 border border-secondary/30 rounded-md focus:outline-none focus:ring-1 focus:ring-accent bg-background"
+          >
+            <option value="newest">Newest First</option>
+            <option value="oldest">Oldest First</option>
+          </select>
+        </div>
+      </div>
+
+      {filteredTickets.length === 0 ? (
+        <div className="text-center py-20 text-primary/50">
+          <AlertCircle size={48} className="mx-auto text-primary/30 mb-4" />
+          <p className="text-lg font-bold mb-2">No Tickets Found</p>
+          <p>No customer support queries match the current filters.</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {filteredTickets.map((ticket) => (
+            <div
+              key={ticket.id}
+              className="border border-secondary/30 rounded-lg p-5 hover:bg-secondary/5 transition-colors"
+            >
+              <div className="flex justify-between items-start mb-3">
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-1">
+                    <span
+                      className={`px-2 py-1 text-xs font-bold rounded-full ${ticket.status === "OPEN" ? "bg-red-100 text-red-700" : ticket.status === "IN_PROGRESS" ? "bg-yellow-100 text-yellow-700" : "bg-green-100 text-green-700"}`}
+                    >
+                      {ticket.status}
+                    </span>
+                    <h4 className="font-bold text-primary">{ticket.subject}</h4>
+                    {ticket.orderId && (
+                      <span className="text-xs font-mono text-primary/60 bg-secondary/20 px-2 py-0.5 rounded">
+                        Order #{ticket.orderId.substring(0, 8)}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-primary/60 mt-1">
+                    {ticket.user
+                      ? `User: ${ticket.user.username} (${ticket.user.phoneNumber || "No phone"})`
+                      : ticket.userId
+                        ? `User ID: ${ticket.userId}`
+                        : `Guest: Unknown`}
+                  </p>
+                </div>
+                <div className="text-xs text-primary/50 text-right">
+                  {new Date(ticket.createdAt).toLocaleString()}
+                </div>
+              </div>
+              <p className="text-sm text-primary/80 bg-secondary/10 p-3 rounded-md mb-4">
+                {ticket.message}
+              </p>
+
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-medium text-primary/60">
+                  Update Status:
+                </span>
+                <select
+                  value={ticket.status}
+                  onChange={(e) =>
+                    updateTicketStatus(ticket.id, e.target.value)
+                  }
+                  className="text-sm border border-secondary/30 rounded-md px-2 py-1 focus:outline-none focus:border-accent bg-transparent"
+                >
+                  <option value="OPEN">Open</option>
+                  <option value="IN_PROGRESS">In Progress</option>
+                  <option value="RESOLVED">Resolved</option>
+                </select>
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>

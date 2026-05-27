@@ -169,11 +169,20 @@ export function CustomerOrdersModal({ isOpen, onClose }: CustomerOrdersModalProp
                   <div className="md:border-l md:border-secondary/30 md:pl-6 md:w-48 flex flex-col gap-4">
                     <div>
                       <div className="text-xs uppercase tracking-wider text-primary/60 mb-1">Total</div>
-                      <div className="text-xl font-bold text-accent">₹{order.totalAmount.toFixed(2)}</div>
+                      <div className={!!order.discount || !!order.extraFee ? "text-base font-bold text-accent/80" : "text-xl font-bold text-accent"}>₹{order.totalAmount.toFixed(2)}</div>
+                      {!!order.extraFee && order.extraFee > 0 && (
+                        <div className="mt-1 text-sm text-accent">
+                          <span className="font-semibold block">+ ₹{order.extraFee.toFixed(2)} {order.extraFeeNote || 'delivery'}</span>
+                        </div>
+                      )}
                       {!!order.discount && order.discount > 0 && (
-                        <div className="mt-1 text-xs">
-                          <span className="text-red-500 font-bold block">- ₹{order.discount.toFixed(2)} Discount</span>
-                          <span className="text-primary font-bold">Paid: ₹{(order.totalAmount - order.discount).toFixed(2)}</span>
+                        <div className="mt-1 text-sm">
+                          <span className="text-red-500 font-semibold block">- ₹{order.discount.toFixed(2)} Discount</span>
+                        </div>
+                      )}
+                      {(!!order.discount || !!order.extraFee) && (
+                        <div className="mt-2">
+                          <span className="text-accent font-bold text-xl block">Net Total: ₹{(order.totalAmount + (order.extraFee || 0) - (order.discount || 0)).toFixed(2)}</span>
                         </div>
                       )}
                     </div>

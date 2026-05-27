@@ -36,7 +36,7 @@ export function Storefront() {
       return;
     }
     if (!canOrder) return;
-    if (product.isCustomizable && product.customizationOptions) {
+    if (product.isCustomizable) {
       setCustomizingProduct(product);
     } else {
       addToCart(product, 1);
@@ -154,16 +154,17 @@ export function Storefront() {
 
       <SupportModal isOpen={isSupportOpen} onClose={() => setIsSupportOpen(false)} />
 
-      {/* Floating Support Button */}
-      <button 
-        onClick={() => setIsSupportOpen(true)}
-        className="fixed bottom-6 right-6 bg-primary text-secondary p-4 rounded-full shadow-lg hover:bg-primary-dark transition-all transform hover:scale-105 z-40 flex items-center group"
-      >
-        <HelpCircle size={24} className="shrink-0" />
-        <span className="max-w-0 overflow-hidden group-hover:max-w-xs transition-all duration-300 ease-in-out whitespace-nowrap text-sm font-medium group-hover:ml-2">
-          Get Help
-        </span>
-      </button>
+      {user?.role !== 'ADMIN' && user?.role !== 'EMPLOYEE_OPS' && (
+        <button 
+          onClick={() => setIsSupportOpen(true)}
+          className="fixed bottom-6 right-6 bg-primary text-secondary p-4 rounded-full shadow-lg hover:bg-primary-dark transition-all transform hover:scale-105 z-40 flex items-center group"
+        >
+          <HelpCircle size={24} className="shrink-0" />
+          <span className="max-w-0 overflow-hidden group-hover:max-w-xs transition-all duration-300 ease-in-out whitespace-nowrap text-sm font-medium group-hover:ml-2">
+            Get Help
+          </span>
+        </button>
+      )}
     </div>
   );
 }

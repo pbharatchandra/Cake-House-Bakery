@@ -1,7 +1,5 @@
 import { Request, Response } from "express";
-import { PrismaClient } from "@prisma/client";
-
-const db = new PrismaClient();
+import { db } from "../lib/db.js";
 
 export const reserveCart = async (req: Request, res: Response) => {
   try {

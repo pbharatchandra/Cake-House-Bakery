@@ -6,13 +6,17 @@ export function useStoreStatus() {
 
   const fetchStatus = async () => {
     try {
-      const res = await fetch('/api/settings/store_status');
+      const res = await fetch('/api/config/store_status');
       if (res.ok) {
         const data = await res.json();
         setStoreStatus(data.value);
+      } else {
+        if (!res.ok && res.status !== 404) {
+          console.warn("Store status non-200 endpoint");
+        }
       }
     } catch (e) {
-      console.error("Failed to fetch store status", e);
+      // Supress network failure logs to avoid noise during dev server reboots
     } finally {
       setLoading(false);
     }
@@ -27,7 +31,7 @@ export function useStoreStatus() {
 
   const updateStatus = async (status: 'OPEN' | 'CLOSED') => {
     try {
-      const res = await fetch('/api/settings/store_status', {
+      const res = await fetch('/api/config/store_status', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

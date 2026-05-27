@@ -286,15 +286,7 @@ export function AuthPage() {
           </div>
         )}
 
-        {view === 'LOGIN' && (
-          <div className="mt-6 text-center text-sm text-primary/60 flex flex-col gap-2">
-            <div className="mt-4 p-3 bg-secondary/20 rounded-md text-xs text-left">
-              <strong className="block mb-1 text-primary">Demo Accounts (Password: dummy)</strong>
-              <div className="flex justify-between"><span>Admin:</span> <code>admin@rustic.com</code></div>
-              <div className="flex justify-between"><span>Kitchen:</span> <code>kitchen@rustic.com</code></div>
-            </div>
-          </div>
-        )}
+
       </div>
     </div>
   );

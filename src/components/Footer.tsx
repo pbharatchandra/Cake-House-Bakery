@@ -49,8 +49,9 @@ export function Footer() {
           </div>
         </div>
         
-        <div className="text-center text-secondary/50 text-xs border-t border-secondary/10 pt-8">
-          &copy; {new Date().getFullYear()} Cake House. All rights reserved.
+        <div className="text-center text-secondary/50 text-xs border-t border-secondary/10 pt-8 flex flex-col items-center justify-center space-y-2">
+          <span>&copy; {new Date().getFullYear()} Cake House. All rights reserved.</span>
+          <span>About The <a href="https://pbharatchandra.netlify.app/" target="_blank" rel="noopener noreferrer" className="hover:text-accent transition-colors underline decoration-secondary/30 underline-offset-2">Developer</a></span>
         </div>
       </div>
     </footer>

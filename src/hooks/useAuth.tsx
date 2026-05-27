@@ -52,11 +52,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               localStorage.removeItem('rustic_user');
             }
           } catch (e) {
-            console.error('Failed to fetch latest user data', e);
+            // Silently fail auth fetch if network is unavailable
           }
         }
       } catch (e) {
-        console.error('Failed to parse stored user', e);
+        // Suppress parsing error
       } finally {
         setLoading(false);
       }
@@ -137,7 +137,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch(e) {}
     setUser(null);
     localStorage.removeItem('rustic_user');
   };

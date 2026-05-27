@@ -13,6 +13,11 @@ router.post('/subscribe', async (req: any, res) => {
   }
 
   try {
+    const userExists = await db.user.findUnique({ where: { id: userId }});
+    if (!userExists) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
     // Upsert subscription based on endpoint
     await db.pushSubscription.upsert({
       where: { endpoint: subscription.endpoint },

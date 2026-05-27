@@ -1,25 +1,47 @@
 import express from "express";
 import { createServer as createViteServer } from "vite";
 import path from "path";
-import { fileURLToPath } from "url";
+
+import { execSync } from "child_process";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
+import cookieParser from "cookie-parser";
 import authRouter from "./server/routes/auth.js";
 import productsRouter from "./server/routes/products.js";
 import ordersRouter from "./server/routes/orders.js";
 import ticketsRouter from "./server/routes/tickets.js";
 import checkoutRouter from "./server/routes/checkout.js";
 import notificationsRouter from "./server/routes/notifications.js";
-import settingsRouter from "./server/routes/settings.js";
-import { PrismaClient } from "@prisma/client";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const db = new PrismaClient();
+import configRouter from "./server/routes/config.js";
+import backupRouter from "./server/routes/backup.js";
+import { db } from "./server/lib/db.js";
 
 async function startServer() {
   const app = express();
+  app.set("trust proxy", 1);
   const PORT = 3000;
 
+  // 1. HTTP Security Headers
+  // We disable contentSecurityPolicy in dev so Vite HMR / inline scripts work smoothly
+  app.use(helmet({
+    contentSecurityPolicy: false,
+  }));
+
+  // 2. Body Parser & Cookie Parser
   app.use(express.json());
+  app.use(cookieParser());
+
+  // 3. Rate Limiting (Basic DoS / DDoS protection)
+  const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 2000, // Limit each IP to 2000 requests per `window` (here, per 15 minutes)
+    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+    message: { error: "Too many requests from this IP, please try again after 15 minutes" }
+  });
+
+  // Apply the rate limiting middleware to API calls only
+  app.use("/api", apiLimiter);
 
   // ==========================================
   // API ROUTES (The "Logic Layer")
@@ -34,7 +56,8 @@ async function startServer() {
   app.use("/api/tickets", ticketsRouter);
   app.use("/api/checkout", checkoutRouter);
   app.use("/api/notifications", notificationsRouter);
-  app.use("/api/settings", settingsRouter);
+  app.use("/api/config", configRouter);
+  app.use("/api/backup", backupRouter);
 
   // Background task to clean up expired reservations
   setInterval(async () => {

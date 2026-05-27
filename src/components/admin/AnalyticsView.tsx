@@ -28,6 +28,7 @@ const TIME_RANGES = {
   LAST_30_DAYS: "Last 30 Days",
   THIS_YEAR: "This Year",
   ALL_TIME: "All Time",
+  CUSTOM_DATE: "Specific Date",
 };
 
 const COLORS = [
@@ -48,6 +49,9 @@ export function AnalyticsView({
 }) {
   const [timeRange, setTimeRange] =
     useState<keyof typeof TIME_RANGES>("LAST_30_DAYS");
+  const [customDateValue, setCustomDateValue] = useState(
+    new Date().toISOString().split("T")[0],
+  );
 
   const {
     currentRevenue,
@@ -59,7 +63,8 @@ export function AnalyticsView({
     currentOrders,
     validOrders,
     categoryData,
-    monthlyData,
+    chartData,
+    dailyData,
     customerData,
     topCustomers,
   } = useMemo(() => {
@@ -74,6 +79,7 @@ export function AnalyticsView({
     );
 
     let startDate = new Date(0);
+    let endDate: Date | null = null;
     let previousStartDate = new Date(0);
     let previousEndDate = new Date(0);
 
@@ -93,9 +99,18 @@ export function AnalyticsView({
       startDate = new Date(now.getFullYear(), 0, 1);
       previousStartDate = new Date(now.getFullYear() - 1, 0, 1);
       previousEndDate = startDate;
+    } else if (timeRange === "CUSTOM_DATE") {
+      startDate = new Date(customDateValue);
+      endDate = new Date(startDate.getTime() + 86400000);
+      previousStartDate = new Date(startDate.getTime() - 86400000);
+      previousEndDate = startDate;
     }
 
-    const cur = valid.filter((o) => new Date(o.createdAt) >= startDate);
+    const cur = valid.filter((o) => {
+      const d = new Date(o.createdAt);
+      if (endDate) return d >= startDate && d < endDate;
+      return d >= startDate;
+    });
     const prev =
       timeRange === "ALL_TIME"
         ? []
@@ -126,7 +141,7 @@ export function AnalyticsView({
       .sort((a, b) => b.value - a.value);
 
     // Monthly Sales
-    const monthStats = valid.reduce(
+    const monthStats = cur.reduce(
       (acc, o) => {
         const d = new Date(o.createdAt);
         const mKey =
@@ -147,13 +162,60 @@ export function AnalyticsView({
       {} as Record<string, { revenue: number; orders: number; label: string }>,
     );
 
-    const mData = Object.keys(monthStats)
+    const dData = Object.keys(monthStats)
       .sort()
       .map((k) => ({
-        month: monthStats[k].label,
+        label: monthStats[k].label,
         revenue: monthStats[k].revenue,
         orders: monthStats[k].orders,
       }));
+
+    // Daily Sales Data
+    const dailyStats = cur.reduce(
+      (acc, o) => {
+        const d = new Date(o.createdAt);
+        const dKey =
+          d.getFullYear() +
+          "-" +
+          String(d.getMonth() + 1).padStart(2, "0") +
+          "-" +
+          String(d.getDate()).padStart(2, "0");
+        if (!acc[dKey])
+          acc[dKey] = {
+            revenue: 0,
+            orders: 0,
+            dateObj: new Date(d.getFullYear(), d.getMonth(), d.getDate()),
+            label: d.toLocaleString("default", {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            }),
+          };
+        acc[dKey].revenue += getOrderFinalAmount(o);
+        acc[dKey].orders += 1;
+        return acc;
+      },
+      {} as Record<string, { revenue: number; orders: number; label: string; dateObj: Date }>,
+    );
+
+    const dailyDataListChronological = Object.keys(dailyStats)
+      .sort((a, b) => dailyStats[a].dateObj.getTime() - dailyStats[b].dateObj.getTime())
+      .map((k) => ({
+        label: dailyStats[k].label,
+        revenue: dailyStats[k].revenue,
+        orders: dailyStats[k].orders,
+      }));
+
+    const dailyDataListDescending = Object.keys(dailyStats)
+      .sort((a, b) => dailyStats[b].dateObj.getTime() - dailyStats[a].dateObj.getTime())
+      .map((k) => ({
+        dateString: dailyStats[k].label,
+        revenue: dailyStats[k].revenue,
+        orders: dailyStats[k].orders,
+      }));
+
+    const isMonthlyView = timeRange === "THIS_YEAR" || timeRange === "ALL_TIME";
+    const chartData = isMonthlyView ? dData : dailyDataListChronological;
 
     // Customers Data
     const userFirstOrderMap: Record<string, Date> = {};
@@ -214,11 +276,12 @@ export function AnalyticsView({
       currentOrders: cur,
       validOrders: valid,
       categoryData: cData,
-      monthlyData: mData,
+      chartData: chartData,
+      dailyData: dailyDataListDescending,
       customerData: custData,
       topCustomers: tCust,
     };
-  }, [orders, timeRange]);
+  }, [orders, timeRange, customDateValue]);
 
   const calcGrowth = (cur: number, prev: number) => {
     if (prev === 0) return cur > 0 ? 100 : 0;
@@ -304,6 +367,15 @@ export function AnalyticsView({
               </option>
             ))}
           </select>
+          {timeRange === "CUSTOM_DATE" && (
+            <input
+              type="date"
+              value={customDateValue}
+              max={new Date().toISOString().split("T")[0]}
+              onChange={(e) => setCustomDateValue(e.target.value)}
+              className="border-gray-300 rounded-md shadow-sm focus:border-accent focus:ring focus:ring-accent focus:ring-opacity-50 text-sm py-2 px-3 bg-secondary/5"
+            />
+          )}
         </div>
       </div>
 
@@ -336,21 +408,21 @@ export function AnalyticsView({
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Monthly Sales Bar Chart */}
+        {/* Sales Bar Chart */}
         <div className="bg-white p-6 rounded-xl border border-secondary/20 shadow-sm">
           <h3 className="text-sm font-serif font-bold mb-6 text-primary">
-            Monthly Sales Revenue
+            {timeRange === 'THIS_YEAR' || timeRange === 'ALL_TIME' ? 'Monthly' : 'Daily'} Sales Revenue
           </h3>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={monthlyData}>
+              <BarChart data={chartData}>
                 <CartesianGrid
                   strokeDasharray="3 3"
                   vertical={false}
                   stroke="#E5E7EB"
                 />
                 <XAxis
-                  dataKey="month"
+                  dataKey="label"
                   axisLine={false}
                   tickLine={false}
                   tick={{ fontSize: 12 }}
@@ -371,21 +443,21 @@ export function AnalyticsView({
           </div>
         </div>
 
-        {/* Total Orders Monthly Bar Chart */}
+        {/* Total Orders Bar Chart */}
         <div className="bg-white p-6 rounded-xl border border-secondary/20 shadow-sm">
           <h3 className="text-sm font-serif font-bold mb-6 text-primary">
-            Monthly Orders Generated
+            {timeRange === 'THIS_YEAR' || timeRange === 'ALL_TIME' ? 'Monthly' : 'Daily'} Orders Generated
           </h3>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={monthlyData}>
+              <BarChart data={chartData}>
                 <CartesianGrid
                   strokeDasharray="3 3"
                   vertical={false}
                   stroke="#E5E7EB"
                 />
                 <XAxis
-                  dataKey="month"
+                  dataKey="label"
                   axisLine={false}
                   tickLine={false}
                   tick={{ fontSize: 12 }}
@@ -475,49 +547,97 @@ export function AnalyticsView({
         </div>
       </div>
 
-      {/* Top Customers Leaderboard */}
-      <div className="bg-white p-6 rounded-xl border border-secondary/20 shadow-sm">
-        <h3 className="text-sm font-serif font-bold mb-4 text-primary flex items-center">
-          <Users size={16} className="mr-2 opacity-70" /> Top Loyal Customers
-        </h3>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="border-b border-secondary/20 text-xs text-primary/60 uppercase">
-                <th className="pb-3 font-semibold">Customer</th>
-                <th className="pb-3 font-semibold text-right">Orders</th>
-                <th className="pb-3 font-semibold text-right">Total Spent</th>
-              </tr>
-            </thead>
-            <tbody>
-              {topCustomers.map((cust, i) => (
-                <tr
-                  key={i}
-                  className="border-b border-secondary/10 last:border-0 hover:bg-secondary/5 transition-colors"
-                >
-                  <td className="py-3 text-sm font-medium text-primary">
-                    {cust.name}
-                  </td>
-                  <td className="py-3 text-sm text-primary/80 text-right">
-                    {cust.orders}
-                  </td>
-                  <td className="py-3 text-sm font-medium text-accent text-right">
-                    ₹{cust.spend.toFixed(2)}
-                  </td>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Details by Date Table */}
+        <div className="bg-white p-6 rounded-xl border border-secondary/20 shadow-sm">
+          <h3 className="text-sm font-serif font-bold mb-4 text-primary flex items-center">
+            Details by Date
+          </h3>
+          <div className="overflow-x-auto max-h-96">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="border-b border-secondary/20 text-xs text-primary/60 uppercase sticky top-0 bg-white">
+                  <th className="pb-3 font-semibold">Date</th>
+                  <th className="pb-3 font-semibold text-right">Orders</th>
+                  <th className="pb-3 font-semibold text-right">Revenue</th>
                 </tr>
-              ))}
-              {topCustomers.length === 0 && (
-                <tr>
-                  <td
-                    colSpan={3}
-                    className="py-8 text-center text-sm text-primary/50"
+              </thead>
+              <tbody>
+                {dailyData.map((day : any, i : number) => (
+                  <tr
+                    key={i}
+                    className="border-b border-secondary/10 last:border-0 hover:bg-secondary/5 transition-colors"
                   >
-                    No customers found in this period.
-                  </td>
+                    <td className="py-3 text-sm font-medium text-primary">
+                      {day.dateString}
+                    </td>
+                    <td className="py-3 text-sm text-primary/80 text-right">
+                      {day.orders}
+                    </td>
+                    <td className="py-3 text-sm font-medium text-accent text-right">
+                      ₹{day.revenue.toFixed(2)}
+                    </td>
+                  </tr>
+                ))}
+                {dailyData.length === 0 && (
+                  <tr>
+                    <td
+                      colSpan={3}
+                      className="py-8 text-center text-sm text-primary/50"
+                    >
+                      No daily data found in this period.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Top Customers Leaderboard */}
+        <div className="bg-white p-6 rounded-xl border border-secondary/20 shadow-sm">
+          <h3 className="text-sm font-serif font-bold mb-4 text-primary flex items-center">
+            <Users size={16} className="mr-2 opacity-70" /> Top Loyal Customers
+          </h3>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="border-b border-secondary/20 text-xs text-primary/60 uppercase">
+                  <th className="pb-3 font-semibold">Customer</th>
+                  <th className="pb-3 font-semibold text-right">Orders</th>
+                  <th className="pb-3 font-semibold text-right">Total Spent</th>
                 </tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {topCustomers.map((cust, i) => (
+                  <tr
+                    key={i}
+                    className="border-b border-secondary/10 last:border-0 hover:bg-secondary/5 transition-colors"
+                  >
+                    <td className="py-3 text-sm font-medium text-primary">
+                      {cust.name}
+                    </td>
+                    <td className="py-3 text-sm text-primary/80 text-right">
+                      {cust.orders}
+                    </td>
+                    <td className="py-3 text-sm font-medium text-accent text-right">
+                      ₹{cust.spend.toFixed(2)}
+                    </td>
+                  </tr>
+                ))}
+                {topCustomers.length === 0 && (
+                  <tr>
+                    <td
+                      colSpan={3}
+                      className="py-8 text-center text-sm text-primary/50"
+                    >
+                      No customers found in this period.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>

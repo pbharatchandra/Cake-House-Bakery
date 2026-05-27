@@ -97,6 +97,8 @@ model Order {
   handledById        String?
   handledBy          User?           @relation("EmployeeOrders", fields: [handledById], references: [id])
   discount           Float?  @default(0)
+  extraFee           Float?  @default(0)
+  extraFeeNote       String?
   orderItems         OrderItem[]
   supportTickets     SupportTicket[]
   createdAt          DateTime        @default(now())

@@ -34,6 +34,7 @@ export const CreateOfflineOrderModal: React.FC<Props> = ({
   const [status, setStatus] = useState<"DELIVERED" | "PREPARING">("DELIVERED");
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
+  const [mobileView, setMobileView] = useState<"products" | "cart">("products");
 
   useEffect(() => {
     if (isOpen) {
@@ -43,6 +44,7 @@ export const CreateOfflineOrderModal: React.FC<Props> = ({
       setSearchQuery("");
       setCustomerName("");
       setCustomerPhone("");
+      setMobileView("products");
     }
   }, [isOpen]);
 
@@ -164,14 +166,30 @@ export const CreateOfflineOrderModal: React.FC<Props> = ({
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-primary/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="bg-background rounded-xl shadow-2xl w-full max-w-4xl border border-secondary/20 flex flex-col md:flex-row h-[80vh] overflow-hidden">
+      <div className="bg-background rounded-xl shadow-2xl w-full max-w-4xl border border-secondary/20 flex flex-col md:flex-row h-[90vh] md:h-[80vh] overflow-hidden">
         {/* Left side: Product Selection */}
-        <div className="flex-1 flex flex-col border-r border-primary/10">
+        <div className={`flex-1 flex-col border-r border-primary/10 ${mobileView === "products" ? "flex" : "hidden md:flex"}`}>
           <div className="p-4 border-b border-primary/10 flex justify-between items-center bg-secondary/10">
             <h2 className="font-serif text-xl font-bold">Select Products</h2>
+            <div className="flex items-center gap-2 md:hidden">
+              <button
+                onClick={() => setMobileView("cart")}
+                className="flex items-center gap-2 px-3 py-1.5 bg-accent text-white rounded-lg text-sm font-bold shadow-sm"
+              >
+                <ShoppingCart size={16} /> 
+                {cart.length > 0 && <span className="bg-white text-accent px-1.5 rounded-full text-xs">{cart.length}</span>}
+              </button>
+              <button
+                onClick={onClose}
+                className="p-2 hover:bg-secondary/20 rounded-full transition-colors"
+                aria-label="Close modal"
+              >
+                <X size={20} />
+              </button>
+            </div>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-secondary/20 rounded-full transition-colors md:hidden"
+              className="p-2 hover:bg-secondary/20 rounded-full transition-colors hidden md:block"
             >
               <X size={20} />
             </button>
@@ -243,103 +261,113 @@ export const CreateOfflineOrderModal: React.FC<Props> = ({
         </div>
 
         {/* Right side: Cart & Checkout */}
-        <div className="w-full md:w-80 flex flex-col bg-secondary/5">
+        <div className={`w-full md:w-80 flex-col bg-secondary/5 ${mobileView === "cart" ? "flex flex-1 md:flex-none" : "hidden md:flex md:flex-none"}`}>
           <div className="p-4 border-b border-primary/10 flex justify-between items-center bg-secondary/10">
             <h2 className="font-serif text-xl font-bold flex items-center gap-2">
-              <ShoppingCart size={20} /> Current Order
+              <span 
+                className="md:hidden text-sm cursor-pointer border border-primary/20 px-2.5 py-1 rounded-md bg-white hover:bg-secondary/10" 
+                onClick={() => setMobileView("products")}
+              >
+                ← Back
+              </span>
+              <ShoppingCart size={20} className="hidden md:block"/> 
+              <span className="hidden md:inline">Current Order</span>
+              <span className="md:hidden">Cart</span>
             </h2>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-secondary/20 rounded-full transition-colors hidden md:block"
+              className="p-2 hover:bg-secondary/20 rounded-full transition-colors md:block hidden"
             >
               <X size={20} />
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4 space-y-3">
-            {cart.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-primary/40 p-6 text-center">
-                <ShoppingCart size={48} className="mb-4 opacity-20" />
-                <p>Order is empty</p>
-                <p className="text-xs mt-2">Add items from the left</p>
-              </div>
-            ) : (
-              cart.map((item) => (
-                <div
-                  key={item.product.id}
-                  className="flex justify-between items-center text-sm border-b border-primary/5 pb-2"
-                >
-                  <div className="flex-1">
-                    <span className="font-medium">{item.product.name}</span>
-                    <div className="text-xs text-primary/60">
-                      ₹{item.product.price.toFixed(2)} x {item.quantity}
+          <div className="flex-1 overflow-y-auto flex flex-col">
+            <div className="flex-1 p-4 space-y-3">
+              {cart.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-primary/40 p-6 text-center">
+                  <ShoppingCart size={48} className="mb-4 opacity-20" />
+                  <p>Order is empty</p>
+                  <p className="text-xs mt-2">Add items</p>
+                </div>
+              ) : (
+                cart.map((item) => (
+                  <div
+                    key={item.product.id}
+                    className="flex justify-between items-center text-sm border-b border-primary/5 pb-2"
+                  >
+                    <div className="flex-1">
+                      <span className="font-medium">{item.product.name}</span>
+                      <div className="text-xs text-primary/60">
+                        ₹{item.product.price.toFixed(2)} x {item.quantity}
+                      </div>
+                    </div>
+                    <div className="font-bold whitespace-nowrap ml-4">
+                      ₹{(item.product.price * item.quantity).toFixed(2)}
                     </div>
                   </div>
-                  <div className="font-bold">
-                    ₹{(item.product.price * item.quantity).toFixed(2)}
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-
-          <div className="p-4 bg-background border-t border-primary/10 space-y-4">
-            <div className="space-y-2">
-              <input
-                type="text"
-                placeholder="Customer Name (Optional)"
-                value={customerName}
-                onChange={(e) => setCustomerName(e.target.value)}
-                className="w-full px-3 py-2 bg-secondary/5 border border-secondary/20 rounded-md text-sm focus:outline-none focus:border-accent"
-              />
-              <input
-                type="text"
-                placeholder="Phone Number (Optional)"
-                value={customerPhone}
-                onChange={(e) => setCustomerPhone(e.target.value)}
-                className="w-full px-3 py-2 bg-secondary/5 border border-secondary/20 rounded-md text-sm focus:outline-none focus:border-accent"
-              />
-            </div>
-
-            <div className="flex justify-between items-center font-bold text-lg pt-2 border-t border-primary/5">
-              <span>Total:</span>
-              <span className="text-accent">₹{totalAmount.toFixed(2)}</span>
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-primary/70 mb-1">
-                Order Status
-              </label>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setStatus("DELIVERED")}
-                  className={`flex-1 py-2 rounded-md text-xs font-bold transition-colors ${status === "DELIVERED" ? "bg-primary text-secondary" : "bg-secondary/20 text-primary hover:bg-secondary/40"}`}
-                >
-                  DELIVERED (Instant)
-                </button>
-                <button
-                  onClick={() => setStatus("PREPARING")}
-                  className={`flex-1 py-2 rounded-md text-xs font-bold transition-colors ${status === "PREPARING" ? "bg-amber-500 text-white" : "bg-secondary/20 text-primary hover:bg-secondary/40"}`}
-                >
-                  PREPARING (Live)
-                </button>
-              </div>
-            </div>
-
-            <button
-              onClick={handleSubmit}
-              disabled={cart.length === 0 || isSubmitting}
-              className="w-full py-3 bg-accent text-white font-bold rounded-lg hover:bg-accent/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2"
-            >
-              {isSubmitting ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>{" "}
-                  Processing...
-                </>
-              ) : (
-                "Create Offline Order"
+                ))
               )}
-            </button>
+            </div>
+
+            <div className="p-4 bg-background border-t border-primary/10 space-y-4 shrink-0">
+              <div className="space-y-2">
+                <input
+                  type="text"
+                  placeholder="Customer Name (Optional)"
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  className="w-full px-3 py-2 bg-secondary/5 border border-secondary/20 rounded-md text-sm focus:outline-none focus:border-accent"
+                />
+                <input
+                  type="text"
+                  placeholder="Phone Number (Optional)"
+                  value={customerPhone}
+                  onChange={(e) => setCustomerPhone(e.target.value)}
+                  className="w-full px-3 py-2 bg-secondary/5 border border-secondary/20 rounded-md text-sm focus:outline-none focus:border-accent"
+                />
+              </div>
+
+              <div className="flex justify-between items-center font-bold text-lg pt-2 border-t border-primary/5">
+                <span>Total:</span>
+                <span className="text-accent">₹{totalAmount.toFixed(2)}</span>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-primary/70 mb-1">
+                  Order Status
+                </label>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setStatus("DELIVERED")}
+                    className={`flex-1 py-2 rounded-md text-xs font-bold transition-colors ${status === "DELIVERED" ? "bg-primary text-secondary" : "bg-secondary/20 text-primary hover:bg-secondary/40"}`}
+                  >
+                    DELIVERED (Instant)
+                  </button>
+                  <button
+                    onClick={() => setStatus("PREPARING")}
+                    className={`flex-1 py-2 rounded-md text-xs font-bold transition-colors ${status === "PREPARING" ? "bg-amber-500 text-white" : "bg-secondary/20 text-primary hover:bg-secondary/40"}`}
+                  >
+                    PREPARING (Live)
+                  </button>
+                </div>
+              </div>
+
+              <button
+                onClick={handleSubmit}
+                disabled={cart.length === 0 || isSubmitting}
+                className="w-full py-3 bg-accent text-white font-bold rounded-lg hover:bg-accent/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2"
+              >
+                {isSubmitting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>{" "}
+                    Processing...
+                  </>
+                ) : (
+                  "Create Offline Order"
+                )}
+              </button>
+            </div>
           </div>
         </div>
       </div>

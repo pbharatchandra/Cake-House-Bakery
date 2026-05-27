@@ -66,36 +66,51 @@ export function CustomizationModal({ product, cart, onClose, onAddToCart }: Cust
         </div>
         
         <div className="p-6 space-y-6">
-          {options.map(opt => (
-            <div key={opt.name} className="space-y-2">
+          {options.length === 0 ? (
+            <div className="space-y-2">
               <label className="block text-sm font-medium text-primary">
-                {opt.name} {opt.required && <span className="text-accent">*</span>}
+                Special Instructions
               </label>
-              
-              {opt.type === 'text' ? (
-                <input
-                  type="text"
-                  value={selections[opt.name] || ''}
-                  onChange={e => setSelections({ ...selections, [opt.name]: e.target.value })}
-                  className="w-full px-3 py-2 bg-secondary/20 border border-secondary rounded-md text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
-                  placeholder={`Enter ${opt.name.toLowerCase()}`}
-                  required={opt.required}
-                />
-              ) : (
-                <select
-                  value={selections[opt.name] || ''}
-                  onChange={e => setSelections({ ...selections, [opt.name]: e.target.value })}
-                  className="w-full px-3 py-2 bg-secondary/20 border border-secondary rounded-md text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
-                  required={opt.required}
-                >
-                  <option value="" disabled>Select {opt.name.toLowerCase()}</option>
-                  {opt.options?.map(choice => (
-                    <option key={choice} value={choice}>{choice}</option>
-                  ))}
-                </select>
-              )}
+              <textarea
+                value={selections['Special Instructions'] || ''}
+                onChange={e => setSelections({ ...selections, 'Special Instructions': e.target.value })}
+                className="w-full px-3 py-2 bg-secondary/20 border border-secondary rounded-md text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
+                placeholder="Enter any special requests (e.g. happy birthday text, etc.)"
+                rows={3}
+              />
             </div>
-          ))}
+          ) : (
+            options.map(opt => (
+              <div key={opt.name} className="space-y-2">
+                <label className="block text-sm font-medium text-primary">
+                  {opt.name} {opt.required && <span className="text-accent">*</span>}
+                </label>
+                
+                {opt.type === 'text' ? (
+                  <input
+                    type="text"
+                    value={selections[opt.name] || ''}
+                    onChange={e => setSelections({ ...selections, [opt.name]: e.target.value })}
+                    className="w-full px-3 py-2 bg-secondary/20 border border-secondary rounded-md text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
+                    placeholder={`Enter ${opt.name.toLowerCase()}`}
+                    required={opt.required}
+                  />
+                ) : (
+                  <select
+                    value={selections[opt.name] || ''}
+                    onChange={e => setSelections({ ...selections, [opt.name]: e.target.value })}
+                    className="w-full px-3 py-2 bg-secondary/20 border border-secondary rounded-md text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
+                    required={opt.required}
+                  >
+                    <option value="" disabled>Select {opt.name.toLowerCase()}</option>
+                    {opt.options?.map(choice => (
+                      <option key={choice} value={choice}>{choice}</option>
+                    ))}
+                  </select>
+                )}
+              </div>
+            ))
+          )}
           
           <div className="pt-4 border-t border-secondary/50 flex items-center justify-between">
             <div className="flex items-center space-x-4">

@@ -28,9 +28,12 @@ interface Order {
   status: string;
   totalAmount: number;
   discount?: number;
+  extraFee?: number;
+  extraFeeNote?: string;
   paymentMethod?: string;
   transactionId?: string;
   cancellationReason?: string;
+  address?: string;
   orderItems: OrderItem[];
   createdAt: string;
 }
@@ -53,6 +56,9 @@ export function FulfillmentDashboard() {
   const [cancellationReason, setCancellationReason] = useState('');
   const [isOfflineModalOpen, setIsOfflineModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [extraFeeOrder, setExtraFeeOrder] = useState<Order | null>(null);
+  const [extraFeeAmount, setExtraFeeAmount] = useState<number | ''>('');
+  const [extraFeeNote, setExtraFeeNote] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'ONLINE'>('CASH');
   const [transactionId, setTransactionId] = useState('');
   const [discountAmount, setDiscountAmount] = useState<number>(0);
@@ -108,7 +114,7 @@ export function FulfillmentDashboard() {
     }
   };
 
-  const updateOrderStatus = async (orderId: string, newStatus: string, tempPaymentMethod?: string, tempTransactionId?: string, cancelReason?: string, discount?: number) => {
+  const updateOrderStatus = async (orderId: string, newStatus: string, tempPaymentMethod?: string, tempTransactionId?: string, cancelReason?: string, discount?: number, extraFee?: number, extraFeeNote?: string) => {
     const previousOrders = [...orders];
     setOrders(orders.map(o => o.id === orderId ? { ...o, status: newStatus, cancellationReason: cancelReason } : o));
 
@@ -118,6 +124,8 @@ export function FulfillmentDashboard() {
       if (tempTransactionId) body.transactionId = tempTransactionId;
       if (cancelReason) body.cancellationReason = cancelReason;
       if (discount !== undefined) body.discount = discount;
+      if (extraFee !== undefined) body.extraFee = extraFee;
+      if (extraFeeNote !== undefined) body.extraFeeNote = extraFeeNote;
 
       const res = await fetch(`/api/orders/${orderId}/status`, {
         method: 'PATCH',
@@ -134,6 +142,25 @@ export function FulfillmentDashboard() {
       console.error(err);
       setOrders(previousOrders);
     }
+  };
+
+  const handleExtraFeeSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!extraFeeOrder) return;
+    
+    updateOrderStatus(extraFeeOrder.id, extraFeeOrder.status, undefined, undefined, undefined, undefined, typeof extraFeeAmount === 'number' ? extraFeeAmount : 0, extraFeeNote);
+    setExtraFeeOrder(null);
+    setExtraFeeAmount('');
+    setExtraFeeNote('');
+  };
+
+  const handleRemoveExtraFee = () => {
+    if (!extraFeeOrder) return;
+    
+    updateOrderStatus(extraFeeOrder.id, extraFeeOrder.status, undefined, undefined, undefined, undefined, 0, '');
+    setExtraFeeOrder(null);
+    setExtraFeeAmount('');
+    setExtraFeeNote('');
   };
 
   const handleOrderAdvance = (order: Order) => {
@@ -374,6 +401,11 @@ export function FulfillmentDashboard() {
                         }}
                         onAddItems={() => setOrderToAddItems(order)}
                         onRemoveItem={(itemId) => handleRemoveOrderItem(order.id, itemId)}
+                        onAddExtraFee={() => {
+                          setExtraFeeOrder(order);
+                          setExtraFeeAmount(order.extraFee || '');
+                          setExtraFeeNote(order.extraFeeNote || '');
+                        }}
                         nextStatusText={getStatusButtonText(order.status)}
                       />
                     ))}
@@ -390,7 +422,7 @@ export function FulfillmentDashboard() {
           <div className="bg-background rounded-xl shadow-2xl p-6 w-full max-w-md border border-secondary/20">
             <h3 className="font-serif text-xl font-bold mb-4 text-primary">Collect Payment</h3>
             <p className="text-sm text-primary/70 mb-4">
-              Complete order #{paymentOrder.id.substring(0, 8).toUpperCase()} for <span className="font-medium">₹{paymentOrder.totalAmount.toFixed(2)}</span>
+              Complete order #{paymentOrder.id.substring(0, 8).toUpperCase()} for <span className="font-medium">₹{(paymentOrder.totalAmount + (paymentOrder.extraFee || 0)).toFixed(2)}</span>
             </p>
             
             <form onSubmit={handlePaymentSubmit}>
@@ -400,7 +432,7 @@ export function FulfillmentDashboard() {
                   <input
                     type="number"
                     min="0"
-                    max={paymentOrder.totalAmount}
+                    max={paymentOrder.totalAmount + (paymentOrder.extraFee || 0)}
                     step="0.01"
                     value={discountAmount}
                     onChange={(e) => setDiscountAmount(parseFloat(e.target.value) || 0)}
@@ -408,7 +440,7 @@ export function FulfillmentDashboard() {
                   />
                   {discountAmount > 0 && (
                     <p className="text-xs text-accent mt-1 font-bold">
-                      Final Amount: ₹{(paymentOrder.totalAmount - discountAmount).toFixed(2)}
+                      Final Amount: ₹{(paymentOrder.totalAmount + (paymentOrder.extraFee || 0) - discountAmount).toFixed(2)}
                     </p>
                   )}
                 </div>
@@ -520,6 +552,70 @@ export function FulfillmentDashboard() {
         </div>
       )}
 
+      {extraFeeOrder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-primary/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-background rounded-xl shadow-2xl p-6 w-full max-w-md border border-secondary/20">
+            <h3 className="font-serif text-xl font-bold mb-4 text-primary">Add Extra Fee</h3>
+            <p className="text-sm text-primary/70 mb-4">
+              Add delivery fee or extra charges for order #{extraFeeOrder.id.substring(0, 8).toUpperCase()}.
+            </p>
+            
+            <form onSubmit={handleExtraFeeSubmit}>
+              <div className="space-y-4 mb-6">
+                <div>
+                  <label className="block text-sm font-medium text-primary mb-1">Fee Amount (₹)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={extraFeeAmount}
+                    onChange={(e) => setExtraFeeAmount(e.target.value === '' ? '' : parseFloat(e.target.value))}
+                    className="w-full border rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-accent outline-none"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-primary mb-1">Note / Description</label>
+                  <input 
+                    type="text"
+                    value={extraFeeNote}
+                    onChange={(e) => setExtraFeeNote(e.target.value)}
+                    placeholder="e.g. Delivery fee, Extra packing, etc."
+                    className="w-full border rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-accent outline-none"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 flex-wrap">
+                {!!extraFeeOrder?.extraFee && (
+                  <button 
+                    type="button" 
+                    onClick={handleRemoveExtraFee}
+                    className="px-4 py-2 border border-red-200 text-red-600 rounded-md text-sm font-medium hover:bg-red-50 transition-colors mr-auto"
+                  >
+                    Remove Fee
+                  </button>
+                )}
+                <button 
+                  type="button" 
+                  onClick={() => setExtraFeeOrder(null)}
+                  className="px-4 py-2 border rounded-md text-sm font-medium hover:bg-secondary/10 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  className="px-4 py-2 bg-primary text-background rounded-md text-sm font-bold hover:bg-primary/90 transition-colors shadow-sm"
+                >
+                  Save Fee
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       <AddProductModal 
         isOpen={isAddModalOpen} 
         onClose={() => setIsAddModalOpen(false)} 
@@ -548,7 +644,7 @@ export function FulfillmentDashboard() {
   );
 }
 
-const OrderTicket: React.FC<{ order: Order, onAdvance: () => void | Promise<void>, onCancel?: () => void, onAddItems?: () => void, onRemoveItem?: (itemId: string) => void, nextStatusText: string }> = ({ order, onAdvance, onCancel, onAddItems, onRemoveItem, nextStatusText }) => {
+const OrderTicket: React.FC<{ order: Order, onAdvance: () => void | Promise<void>, onCancel?: () => void, onAddItems?: () => void, onRemoveItem?: (itemId: string) => void, onAddExtraFee?: () => void, nextStatusText: string }> = ({ order, onAdvance, onCancel, onAddItems, onRemoveItem, onAddExtraFee, nextStatusText }) => {
   const time = new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
   return (
@@ -575,6 +671,15 @@ const OrderTicket: React.FC<{ order: Order, onAdvance: () => void | Promise<void
                 <Plus size={16} />
               </button>
             )}
+            {onAddExtraFee && order.status !== 'CANCELLED' && order.status !== 'DELIVERED' && (
+              <button 
+                onClick={onAddExtraFee}
+                title="Add Extra Fee"
+                className="text-primary hover:text-primary/80 transition-opacity bg-primary/10 p-1 rounded"
+              >
+                <span className="font-bold text-xs">$+</span>
+              </button>
+            )}
           </h3>
           {order.user ? (
             <>
@@ -583,6 +688,12 @@ const OrderTicket: React.FC<{ order: Order, onAdvance: () => void | Promise<void
             </>
           ) : (
             <p className="text-sm text-primary/70 font-medium italic">Guest User</p>
+          )}
+          {order.address && (
+            <div className="mt-2 text-xs bg-primary/5 p-1.5 rounded text-primary/80 border border-primary/10">
+              <span className="font-bold block tracking-wider uppercase text-primary/60 mb-0.5">Delivery Address</span>
+              {order.address}
+            </div>
           )}
         </div>
         <div className="text-right">
@@ -597,6 +708,12 @@ const OrderTicket: React.FC<{ order: Order, onAdvance: () => void | Promise<void
           <span className="font-bold text-sm">Total</span>
           <span className="font-bold text-accent text-lg">₹{order.totalAmount.toFixed(2)}</span>
         </div>
+        {!!order.extraFee && order.extraFee > 0 && (
+          <div className="flex justify-between items-center bg-accent/10 text-accent p-2 rounded-md text-sm border border-accent/20">
+            <span className="font-semibold">{order.extraFeeNote || 'Extra Fee'}</span>
+            <span className="font-bold">+₹{order.extraFee.toFixed(2)}</span>
+          </div>
+        )}
         {!!order.discount && order.discount > 0 && (
           <div className="flex justify-between items-center bg-red-50 text-red-700 p-2 rounded-md text-sm border border-red-200">
             <span className="font-semibold">Discount</span>
@@ -607,7 +724,7 @@ const OrderTicket: React.FC<{ order: Order, onAdvance: () => void | Promise<void
            <div className="bg-green-50 border border-green-200 p-2 rounded-md mb-2 flex items-center justify-between text-sm">
              <span className="font-semibold text-green-700">
                Paid: {order.paymentMethod === 'CASH' ? 'Cash' : 'Online'} 
-               {!!order.discount && order.discount > 0 && ` (₹${(order.totalAmount - order.discount).toFixed(2)})`}
+               {` (₹${(order.totalAmount + (order.extraFee || 0) - (order.discount || 0)).toFixed(2)})`}
              </span>
              <span className="font-mono text-xs text-green-600">{order.transactionId || 'N/A'}</span>
            </div>

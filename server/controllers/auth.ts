@@ -1,5 +1,7 @@
 import { Request, Response } from "express";
 import { db } from "../lib/db.js"; // .js extension is required for ESM in Node
+import bcrypt from "bcryptjs";
+import { generateToken } from "../lib/authMiddleware.js";
 
 // MOCK: Generate JWT/sessions here in a real app
 export const registerUser = async (req: Request, res: Response) => {
@@ -14,9 +16,17 @@ export const registerUser = async (req: Request, res: Response) => {
         username,
         email,
         phoneNumber,
-        password, // In a real app, hash this password!
+        password: await bcrypt.hash(password || "", 10),
         role: userRole,
       },
+    });
+
+    const token = generateToken(user.id, user.role);
+    res.cookie("jwt", token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "none",
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
     res.status(201).json({
@@ -53,13 +63,13 @@ export const loginUser = async (req: Request, res: Response) => {
     if (!user) {
       if (email === "admin@rustic.com" && password === "dummy") {
         user = await db.user.create({
-          data: { email, password, username: "Admin", role: "ADMIN" },
+          data: { email, password: await bcrypt.hash("dummy", 10), username: "Admin", role: "ADMIN" },
         });
       } else if (email === "kitchen@rustic.com" && password === "dummy") {
         user = await db.user.create({
           data: {
             email,
-            password,
+            password: await bcrypt.hash("dummy", 10),
             username: "Kitchen Staff",
             role: "EMPLOYEE_OPS",
           },
@@ -67,9 +77,26 @@ export const loginUser = async (req: Request, res: Response) => {
       }
     }
 
-    if (!user || user.password !== password) {
+    if (!user) {
       return res.status(401).json({ error: "Invalid credentials" });
     }
+    
+    // Support both plain text for old accounts and hashed for new ones
+    const isMatch = user.password && user.password.startsWith("$2") 
+      ? await bcrypt.compare(password || "", user.password) 
+      : user.password === password;
+
+    if (!isMatch) {
+      return res.status(401).json({ error: "Invalid credentials" });
+    }
+
+    const token = generateToken(user.id, user.role);
+    res.cookie("jwt", token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "none",
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
 
     res.json({
       message: "Login successful",
@@ -106,7 +133,7 @@ export const firebaseLogin = async (req: Request, res: Response) => {
           id: uid,
           email: `${uid}@phone.com`, // mock email
           username: `User_${phoneNumber.substring(phoneNumber.length - 4)}`,
-          password: password || `firebase_${uid}`,
+          password: await bcrypt.hash(password || `firebase_${uid}`, 10),
           phoneNumber,
           role: "CUSTOMER",
         },
@@ -115,9 +142,17 @@ export const firebaseLogin = async (req: Request, res: Response) => {
     } else if (password) {
       user = await db.user.update({
         where: { id: user.id },
-        data: { password },
+        data: { password: await bcrypt.hash(password, 10) },
       });
     }
+
+    const token = generateToken(user.id, user.role);
+    res.cookie("jwt", token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "none",
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
 
     res.json({
       message: "Login successful",
@@ -134,6 +169,15 @@ export const firebaseLogin = async (req: Request, res: Response) => {
     console.error("Firebase Login error:", error);
     res.status(500).json({ error: "Internal server error" });
   }
+};
+
+export const logoutUser = async (req: Request, res: Response) => {
+  res.clearCookie("jwt", {
+    httpOnly: true,
+    secure: true,
+    sameSite: "none",
+  });
+  res.json({ message: "Logged out successfully" });
 };
 
 export const getProfile = async (req: Request, res: Response) => {
@@ -241,7 +285,7 @@ export const adminResetUserPassword = async (req: Request, res: Response) => {
 
     await db.user.update({
       where: { id },
-      data: { password: newPassword },
+      data: { password: await bcrypt.hash(newPassword, 10) },
     });
 
     res.json({ message: "Password reset successfully." });
@@ -279,13 +323,17 @@ export const updatePassword = async (req: Request, res: Response) => {
       return res.status(404).json({ error: "User not found" });
     }
 
-    if (user.password !== oldPassword) {
+    const isMatch = user.password && user.password.startsWith("$2") 
+      ? await bcrypt.compare(oldPassword, user.password) 
+      : user.password === oldPassword;
+
+    if (!isMatch) {
       return res.status(401).json({ error: "Incorrect old password" });
     }
 
     await db.user.update({
       where: { id: userId },
-      data: { password: newPassword },
+      data: { password: await bcrypt.hash(newPassword, 10) },
     });
 
     res.json({ message: "Password updated successfully" });

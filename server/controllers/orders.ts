@@ -16,7 +16,13 @@ export const streamOrders = (req: Request, res: Response) => {
 
   orderEvents.on("update", listener);
 
+  // Send a heartbeat every 30 seconds to prevent connection drops and pool exhaustion
+  const heartbeat = setInterval(() => {
+    res.write(`:\n\n`);
+  }, 30000);
+
   req.on("close", () => {
+    clearInterval(heartbeat);
     orderEvents.off("update", listener);
   });
 };
@@ -44,7 +50,7 @@ export const getOrders = async (req: Request, res: Response) => {
     res.json({ orders });
   } catch (error) {
     console.error("Get orders error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ error: "Internal server error", details: String(error) });
   }
 };
 
@@ -57,6 +63,8 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
       transactionId,
       cancellationReason,
       discount,
+      extraFee,
+      extraFeeNote,
       handledById,
     } = req.body;
 
@@ -83,6 +91,12 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
 
     if (discount !== undefined && discount !== null) {
       updateData.discount = parseFloat(discount);
+    }
+    if (extraFee !== undefined && extraFee !== null) {
+      updateData.extraFee = parseFloat(extraFee);
+    }
+    if (extraFeeNote !== undefined) {
+      updateData.extraFeeNote = extraFeeNote;
     }
 
     const order = await db.order.update({
@@ -138,7 +152,10 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
 
     orderEvents.emit("update");
     res.json({ order });
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.code === 'P2025') {
+      return res.status(404).json({ error: "Order not found" });
+    }
     console.error("Update order status error:", error);
     res.status(500).json({ error: "Internal server error" });
   }
@@ -421,7 +438,7 @@ export const createOrder = async (req: Request, res: Response) => {
           userId: resolvedUserId,
           totalAmount,
           address,
-          handledById,
+          handledById: handledById || undefined,
           orderItems: {
             create: items.map((item: any) => ({
               productId: item.productId,
@@ -468,7 +485,20 @@ export const createOrder = async (req: Request, res: Response) => {
     orderEvents.emit("update");
     res.status(201).json({ order });
   } catch (error) {
-    console.error("Create order error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    console.error("Create order error:", error instanceof Error ? error.message : error);
+    if (typeof error === 'object' && error !== null && 'code' in error) {
+      const code = (error as any).code;
+      console.error("Prisma error code:", code);
+      console.error("Prisma error meta:", (error as any).meta);
+      
+      if (code === 'P2003') {
+        const target = (error as any).meta?.field_name || (error as any).meta?.target;
+        return res.status(400).json({ error: `Invalid reference provided. One of the related records (User, Product, etc.) does not exist. Details: ${target}` });
+      }
+      if (code === 'P2025') {
+        return res.status(400).json({ error: "One or more records to update not found (e.g. invalid reservation)." });
+      }
+    }
+    res.status(500).json({ error: "Internal server error", details: String(error) });
   }
 };

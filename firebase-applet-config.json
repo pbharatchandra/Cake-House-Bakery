@@ -1,9 +1,10 @@
 {
+  "projectId": "cake-house-auth",
+  "appId": "1:553100292365:web:77a2488390df1652298044",
   "apiKey": "AIzaSyDQHaOmUwqdLN47PvpzG5kGMDZwl4x4r1k",
   "authDomain": "cake-house-auth.firebaseapp.com",
-  "projectId": "cake-house-auth",
+  "firestoreDatabaseId": "ai-studio-0ce4cf0a-6dcd-470d-8ce4-5bad7313d114",
   "storageBucket": "cake-house-auth.firebasestorage.app",
   "messagingSenderId": "553100292365",
-  "appId": "1:553100292365:web:58142ad41202cb61298044",
-  "measurementId": "G-904BK4DN2W"
+  "measurementId": ""
 }
