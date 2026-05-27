@@ -94,7 +94,15 @@ export function useBakery() {
       
       const newProducts = prodData.products || [];
       setProducts(newProducts);
-      setCategories(catData.categories || []);
+      
+      let fetchedCategories = catData.categories || [];
+      fetchedCategories.sort((a: Category, b: Category) => {
+        if (a.name === 'Offers' && b.name !== 'Offers') return -1;
+        if (a.name !== 'Offers' && b.name === 'Offers') return 1;
+        return 0; // maintain database order for others
+      });
+      setCategories(fetchedCategories);
+      
       setLoading(false);
 
       setCart(prevCart => {
