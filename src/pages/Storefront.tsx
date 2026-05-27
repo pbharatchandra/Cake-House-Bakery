@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { HelpCircle, Search, SlidersHorizontal } from 'lucide-react';
+import { HelpCircle, Search, SlidersHorizontal, ArrowUp } from 'lucide-react';
 import { Header } from '../components/Header';
 import { Hero } from '../components/Hero';
 import { ProductCard } from '../components/ProductCard';
@@ -180,11 +180,21 @@ export function Storefront() {
           className="fixed bottom-6 right-6 bg-primary text-secondary p-4 rounded-full shadow-lg hover:bg-primary-dark transition-all transform hover:scale-105 z-40 flex items-center group"
         >
           <HelpCircle size={24} className="shrink-0" />
-          <span className="max-w-0 overflow-hidden group-hover:max-w-xs transition-all duration-300 ease-in-out whitespace-nowrap text-sm font-medium group-hover:ml-2">
+          <span className="hidden md:block max-w-0 overflow-hidden group-hover:max-w-xs transition-all duration-300 ease-in-out whitespace-nowrap text-sm font-medium group-hover:ml-2">
             Get Help
           </span>
         </button>
       )}
+
+      <button 
+        onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+        className="fixed bottom-6 left-6 bg-primary text-secondary p-4 rounded-full shadow-lg hover:bg-primary-dark transition-all transform hover:scale-105 z-40 flex items-center group"
+      >
+        <span className="hidden md:block max-w-0 overflow-hidden group-hover:max-w-xs transition-all duration-300 ease-in-out whitespace-nowrap text-sm font-medium group-hover:mr-2">
+          Scroll to Top
+        </span>
+        <ArrowUp size={24} className="shrink-0" />
+      </button>
     </div>
   );
 }
