@@ -14,7 +14,7 @@ import { useAuth } from '../hooks/useAuth';
 import { LoadingScreen } from '../components/LoadingScreen';
 
 export function Storefront() {
-  const { products, categories, loading, cart, addToCart, removeFromCart, clearCart, selectedCategory, setSelectedCategory, refreshProducts } = useBakery();
+  const { products, categories, loading, cart, addToCart, removeFromCart, updateCartQuantity, clearCart, selectedCategory, setSelectedCategory, refreshProducts } = useBakery();
   const [customizingProduct, setCustomizingProduct] = useState<Product | null>(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isOrdersOpen, setIsOrdersOpen] = useState(false);
@@ -49,6 +49,12 @@ export function Storefront() {
       (product.description && product.description.toLowerCase().includes(searchQuery.toLowerCase()))
     )
     .sort((a, b) => {
+      const aIsOutOfStock = a.stockLevel === 0;
+      const bIsOutOfStock = b.stockLevel === 0;
+      
+      if (aIsOutOfStock && !bIsOutOfStock) return 1;
+      if (!aIsOutOfStock && bIsOutOfStock) return -1;
+
       if (sortBy === 'price-asc') return a.price - b.price;
       if (sortBy === 'price-desc') return b.price - a.price;
       if (sortBy === 'name-asc') return a.name.localeCompare(b.name);
@@ -116,6 +122,7 @@ export function Storefront() {
                   product={product} 
                   cart={cart}
                   onAdd={() => handleProductAdd(product)} 
+                  onUpdateQuantity={(delta) => updateCartQuantity(product.id, undefined, delta)}
                 />
               ))}
             </div>

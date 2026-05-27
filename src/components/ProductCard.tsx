@@ -8,9 +8,10 @@ interface ProductCardProps {
   product: Product;
   cart?: CartItem[];
   onAdd: () => void;
+  onUpdateQuantity?: (delta: number) => void;
 }
 
-export function ProductCard({ product, cart = [], onAdd }: ProductCardProps) {
+export function ProductCard({ product, cart = [], onAdd, onUpdateQuantity }: ProductCardProps) {
   const { user } = useAuth();
   const canOrder = !user || user.role === 'CUSTOMER';
   
@@ -64,17 +65,42 @@ export function ProductCard({ product, cart = [], onAdd }: ProductCardProps) {
         </p>
         
         {canOrder && (
-          <button 
-            onClick={onAdd}
-            disabled={isOutOfStock}
-            className={`w-full py-1.5 sm:py-2.5 text-sm sm:text-base rounded-md font-medium transition-colors flex items-center justify-center ${
-              isOutOfStock 
-                ? 'bg-secondary/50 text-primary/40 cursor-not-allowed'
-                : 'bg-primary text-background hover:bg-primary/90'
-            }`}
-          >
-            {isOutOfStock ? 'Sold Out' : product.isCustomizable ? 'Customize' : 'Add to Order'}
-          </button>
+          <div className="mt-auto">
+            {(!product.isCustomizable && currentQuantityInCart > 0) ? (
+              <div className="flex items-center justify-between border border-primary/20 rounded-md p-1 bg-secondary/20">
+                <button
+                  type="button"
+                  onClick={() => onUpdateQuantity && onUpdateQuantity(-1)}
+                  className="w-8 h-8 flex items-center justify-center rounded-md bg-background text-primary hover:bg-secondary transition-colors"
+                >
+                  -
+                </button>
+                <span className="font-medium px-4">{currentQuantityInCart}</span>
+                <button
+                  type="button"
+                  onClick={() => onUpdateQuantity && onUpdateQuantity(1)}
+                  disabled={isOutOfStock}
+                  className={`w-8 h-8 flex items-center justify-center rounded-md text-primary transition-colors ${
+                    isOutOfStock ? 'opacity-50 cursor-not-allowed bg-background' : 'bg-background hover:bg-secondary'
+                  }`}
+                >
+                  +
+                </button>
+              </div>
+            ) : (
+              <button 
+                onClick={onAdd}
+                disabled={isOutOfStock}
+                className={`w-full py-1.5 sm:py-2.5 text-sm sm:text-base rounded-md font-medium transition-colors flex items-center justify-center ${
+                  isOutOfStock 
+                    ? 'bg-secondary/50 text-primary/40 cursor-not-allowed'
+                    : 'bg-primary text-background hover:bg-primary/90'
+                }`}
+              >
+                {isOutOfStock ? 'Sold Out' : product.isCustomizable ? 'Customize' : 'Add to Cart'}
+              </button>
+            )}
+          </div>
         )}
       </div>
     </div>

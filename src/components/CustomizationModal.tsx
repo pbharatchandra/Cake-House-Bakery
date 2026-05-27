@@ -145,7 +145,7 @@ export function CustomizationModal({ product, cart, onClose, onAddToCart }: Cust
               isValid ? 'bg-primary text-background shadow-md hover:bg-primary/90' : 'bg-primary/20 text-primary/40 cursor-not-allowed'
             }`}
           >
-            Add to Order
+            Add to Cart
           </button>
         </div>
       </div>

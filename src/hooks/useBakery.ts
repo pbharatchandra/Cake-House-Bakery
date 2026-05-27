@@ -182,8 +182,36 @@ export function useBakery() {
     });
   };
 
-  const removeFromCart = (productId: string) => {
-    setCart(prev => prev.filter(item => item.product.id !== productId));
+  const removeFromCart = (productId: string, customizations?: string) => {
+    setCart(prev => prev.filter(item => !(item.product.id === productId && item.customizations === customizations)));
+  };
+
+  const updateCartQuantity = (productId: string, customizations: string | undefined, delta: number) => {
+    setCart(prev => {
+      const existing = prev.find(item => item.product.id === productId && item.customizations === customizations);
+      if (!existing) return prev;
+      
+      const newQuantity = existing.quantity + delta;
+      
+      if (newQuantity <= 0) {
+        return prev.filter(item => !(item.product.id === productId && item.customizations === customizations));
+      }
+
+      if (delta > 0) {
+        const currentQuantityInCart = prev.filter(item => item.product.id === productId)
+                                          .reduce((sum, item) => sum + item.quantity, 0);
+        if (currentQuantityInCart >= existing.product.stockLevel) {
+          alert(`Cannot add more. Only ${existing.product.stockLevel} left in stock.`);
+          return prev;
+        }
+      }
+
+      return prev.map(item => 
+        item.product.id === productId && item.customizations === customizations
+          ? { ...item, quantity: newQuantity }
+          : item
+      );
+    });
   };
 
   const clearCart = () => {
@@ -202,6 +230,7 @@ export function useBakery() {
     cart,
     addToCart,
     removeFromCart,
+    updateCartQuantity,
     clearCart,
     selectedCategory,
     setSelectedCategory,

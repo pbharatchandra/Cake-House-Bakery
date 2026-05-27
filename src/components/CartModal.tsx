@@ -11,7 +11,7 @@ interface CartModalProps {
   isOpen: boolean;
   onClose: () => void;
   cart: ReturnType<typeof useBakery>['cart'];
-  removeFromCart: (productId: string) => void;
+  removeFromCart: (productId: string, customizations?: string) => void;
   clearCart: () => void;
   refreshProducts?: () => Promise<void>;
 }
@@ -223,7 +223,7 @@ export function CartModal({ isOpen, onClose, cart, removeFromCart, clearCart, re
                   </div>
                   {!isCheckingOut && (
                     <button 
-                      onClick={() => removeFromCart(item.product.id)}
+                      onClick={() => removeFromCart(item.product.id, item.customizations)}
                       className="text-primary/40 hover:text-red-500 transition-colors self-start"
                     >
                       <Trash2 size={18} />
