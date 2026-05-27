@@ -64,7 +64,13 @@ export function Storefront() {
   const scrollToProducts = () => {
     const productsSection = document.getElementById('fresh-from-the-oven');
     if (productsSection) {
-      productsSection.scrollIntoView({ behavior: 'smooth' });
+      const headerOffset = 80;
+      const elementPosition = productsSection.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + window.scrollY - headerOffset;
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      });
     }
   };
 
