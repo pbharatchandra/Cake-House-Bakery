@@ -121,3 +121,10 @@ model OrderItem {
   price          Float // snapshot of price at order time
   customizations String? // JSON string or notes for customized items
 }
+
+model WasteLog {
+  id        String   @id @default(uuid())
+  note      String
+  value     Float
+  createdAt DateTime @default(now())
+}

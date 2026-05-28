@@ -15,8 +15,8 @@ interface AddProductModalProps {
 export function AddProductModal({ isOpen, onClose, onSuccess }: AddProductModalProps) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [price, setPrice] = useState('0.00');
-  const [stockLevel, setStockLevel] = useState('0');
+  const [price, setPrice] = useState('');
+  const [stockLevel, setStockLevel] = useState('');
   const [image, setImage] = useState('');
   const [isCustomizable, setIsCustomizable] = useState(false);
   const [categoryId, setCategoryId] = useState('');
@@ -49,8 +49,8 @@ export function AddProductModal({ isOpen, onClose, onSuccess }: AddProductModalP
         body: JSON.stringify({ 
           name, 
           description, 
-          price: parseFloat(price), 
-          stockLevel: parseInt(stockLevel), 
+          price: parseFloat(price) || 0, 
+          stockLevel: parseInt(stockLevel) || 0, 
           image, 
           isCustomizable,
           categoryId
@@ -62,8 +62,8 @@ export function AddProductModal({ isOpen, onClose, onSuccess }: AddProductModalP
         // Reset form
         setName('');
         setDescription('');
-        setPrice('0.00');
-        setStockLevel('0');
+        setPrice('');
+        setStockLevel('');
         setImage('');
         setIsCustomizable(false);
         setCategoryId(categories.length > 0 ? categories[0].id : '');

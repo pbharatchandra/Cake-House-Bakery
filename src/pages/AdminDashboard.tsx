@@ -33,7 +33,8 @@ import { OrdersView } from "../components/admin/OrdersView";
 import { AnalyticsView } from "../components/admin/AnalyticsView";
 import { BackupView } from "../components/admin/BackupView";
 import { useStoreStatus } from "../hooks/useStoreStatus";
-import { Store, Power, StoreIcon, Database } from "lucide-react";
+import { Store, Power, StoreIcon, Database, Trash2 } from "lucide-react";
+import { WasteView } from "../components/admin/WasteView";
 
 export function AdminDashboard() {
   const { user, loading: authLoading } = useAuth();
@@ -47,6 +48,7 @@ export function AdminDashboard() {
     | "STAFF"
     | "CUSTOMERS"
     | "BACKUP"
+    | "WASTE"
   >("ANALYTICS");
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
@@ -226,6 +228,13 @@ export function AdminDashboard() {
             <Database size={18} />
             <span className="font-medium text-sm">Backups</span>
           </button>
+          <button
+            onClick={() => setActiveTab("WASTE")}
+            className={`flex items-center space-x-2 md:space-x-3 px-3 py-2 md:px-4 md:py-3 rounded-md transition-colors ${activeTab === "WASTE" ? "bg-primary text-background" : "hover:bg-secondary/30 text-primary/80"}`}
+          >
+            <Trash2 size={18} />
+            <span className="font-medium text-sm">Waste</span>
+          </button>
         </nav>
       </aside>
 
@@ -242,6 +251,7 @@ export function AdminDashboard() {
               {activeTab === "STAFF" && "Staff & Employers"}
               {activeTab === "CUSTOMERS" && "Customer Directory"}
               {activeTab === "BACKUP" && "System Backups"}
+              {activeTab === "WASTE" && "Waste Management"}
             </h1>
             <p className="text-xs md:text-sm text-primary/60 mt-1">
               {new Date().toLocaleDateString("en-US", {
@@ -285,6 +295,7 @@ export function AdminDashboard() {
           {activeTab === "STAFF" && <StaffView />}
           {activeTab === "CUSTOMERS" && <CustomersView />}
           {activeTab === "BACKUP" && <BackupView />}
+          {activeTab === "WASTE" && <WasteView />}
         </div>
 
         {isSettingsModalOpen && (
@@ -469,13 +480,15 @@ function InventoryView({
                           <span className="text-primary/50 mr-1">₹</span>
                           <input
                             type="number"
-                            value={product.price}
-                            onChange={(e) =>
+                            value={product.price === 0 ? "" : product.price}
+                            onChange={(e) => {
+                              const val = e.target.value;
                               updatePrice(
                                 product.id,
-                                parseFloat(e.target.value),
-                              )
-                            }
+                                val === "" ? 0 : parseFloat(val),
+                              );
+                            }}
+                            onFocus={(e) => e.target.select()}
                             className="w-20 bg-transparent border-b border-transparent hover:border-secondary focus:border-accent focus:outline-none transition-colors"
                           />
                         </div>
@@ -484,13 +497,15 @@ function InventoryView({
                         <div className="flex items-center gap-2">
                           <input
                             type="number"
-                            value={product.stockLevel}
-                            onChange={(e) =>
+                            value={product.stockLevel === 0 ? "" : product.stockLevel}
+                            onChange={(e) => {
+                              const val = e.target.value;
                               updateStock(
                                 product.id,
-                                parseInt(e.target.value) || 0,
-                              )
-                            }
+                                val === "" ? 0 : parseInt(val, 10),
+                              );
+                            }}
+                            onFocus={(e) => e.target.select()}
                             className={`w-20 px-2 py-1 rounded text-xs font-bold ${product.stockLevel < 5 ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700"}`}
                           />
                         </div>

@@ -14,6 +14,7 @@ import checkoutRouter from "./server/routes/checkout.js";
 import notificationsRouter from "./server/routes/notifications.js";
 import configRouter from "./server/routes/config.js";
 import backupRouter from "./server/routes/backup.js";
+import wasteRouter from "./server/routes/waste.js";
 import { db } from "./server/lib/db.js";
 
 async function startServer() {
@@ -58,6 +59,7 @@ async function startServer() {
   app.use("/api/notifications", notificationsRouter);
   app.use("/api/config", configRouter);
   app.use("/api/backup", backupRouter);
+  app.use("/api/waste", wasteRouter);
 
   // Background task to clean up expired reservations
   setInterval(async () => {
